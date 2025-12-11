@@ -1,0 +1,86 @@
+@import "leaflet/dist/leaflet.css";
+
+.leaflet-container {
+  width: 100%;
+  height: 100%;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 0 0% 76%;
+    --foreground: 0 0% 10%;
+
+    --card: 0 0% 95%;
+    --card-foreground: 0 0% 10%;
+
+    --popover: 0 0% 95%;
+    --popover-foreground: 0 0% 10%;
+
+    --primary: 0 0% 20%;
+    --primary-foreground: 0 0% 98%;
+    --primary-glow: 0 0% 30%;
+
+    --secondary: 0 0% 85%;
+    --secondary-foreground: 0 0% 10%;
+
+    --muted: 0 0% 45%;
+    --muted-foreground: 0 0% 30%;
+
+    --accent: 0 0% 15%;
+    --accent-foreground: 0 0% 98%;
+
+    --warning: 45 93% 47%;
+    --warning-foreground: 0 0% 10%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 60%;
+    --input: 0 0% 60%;
+    --ring: 0 0% 30%;
+
+    --chart-1: 0 0% 20%;
+    --chart-2: 0 0% 40%;
+    --chart-3: 0 0% 60%;
+    --chart-4: 0 0% 50%;
+    --chart-5: 0 0% 70%;
+
+    --radius: 0.5rem;
+
+    --gradient-primary: linear-gradient(135deg, hsl(0 0% 20%), hsl(0 0% 30%));
+    --shadow-glow: 0 0 20px hsl(0 0% 20% / 0.3);
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+@layer base {
+  * {
+    /* Apply a sensible default border color using your design token */
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    /* Use the CSS HSL variables directly so no @apply is required */
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+}
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin-slow {
+  animation: spin-slow 4s linear infinite;
+}
