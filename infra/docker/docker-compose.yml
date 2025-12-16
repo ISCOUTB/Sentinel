@@ -1,0 +1,13 @@
+version: "3.9"
+
+services:
+  frontend:
+    container_name: usv-hmi-frontend
+    build:
+      context: ../../frontend
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../../frontend:/app
+      - /app/node_modules
+    command: npm run dev
