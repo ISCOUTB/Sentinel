@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   frontend:
     container_name: usv-hmi-frontend
@@ -11,3 +9,9 @@ services:
       - ../../frontend:/app
       - /app/node_modules
     command: npm run dev
+  backend:
+    container_name: usv-hmi-backend
+    build:
+      context: ../../backend
+    ports:
+      - "8000:8000"
