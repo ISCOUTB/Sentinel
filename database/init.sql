@@ -43,6 +43,16 @@ INSERT IGNORE INTO role_permissions (role, permission_id) VALUES
 ('admin', 1), ('admin', 2), ('admin', 3), ('admin', 4), ('admin', 5), ('admin', 6),
 ('technician', 1), ('technician', 4), ('technician', 5);
 
+-- Crear tabla de refresh tokens
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    token VARCHAR(500) UNIQUE NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- Insertar datos de prueba
 INSERT IGNORE INTO users (email, username, password, role, first_name, last_name, organization, phone, contact_email) VALUES
 ('admin@example.com', 'admin', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj6fM/yqqqS', 'admin', 'Admin', 'User', 'USV Corp', '+1234567890', 'admin@usvcorp.com'),
