@@ -137,7 +137,7 @@ resource "aws_instance" "sentinel" {
     export COMPOSE_DOCKER_CLI_BUILD=0
 
     # Levantar contenedores DESDE LA RUTA CORRECTA
-    #cd /home/ubuntu/Sentinel/infra/docker
+    #cd ~/Sentinel/infra/docker
     #/usr/local/bin/docker-compose up -d --build
   EOF
 
