@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     PROJECT_NAME: str = "USV HMI Backend"
     API_V1_STR: str = "/api/v1"
-    BACKEND_CORS_ORIGINS: Union[str, List[str]] = ["http://localhost:3000", "http://localhost:5173"]
+    BACKEND_CORS_ORIGINS: Union[str, List[str]] = ["http://localhost:8080", "http://localhost:3000", "http://localhost:5173", "*"]
 
     class Config:
         env_file = ".env"
@@ -25,13 +25,13 @@ class Settings(BaseSettings):
         elif isinstance(v, list):
             return v
         else:
-            return ["http://localhost:3000", "http://localhost:5173"]
+            return ["http://localhost:8080", "http://localhost:3000", "http://localhost:5173"]
 
     @property
     def cors_origins(self) -> List[str]:
         """Get CORS origins as list."""
         if isinstance(self.BACKEND_CORS_ORIGINS, list):
             return self.BACKEND_CORS_ORIGINS
-        return ["http://localhost:3000", "http://localhost:5173"]
+        return ["http://localhost:8080", "http://localhost:3000", "http://localhost:5173"]
 
 settings = Settings()

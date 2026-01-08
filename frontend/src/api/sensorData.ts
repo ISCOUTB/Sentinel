@@ -1,24 +1,46 @@
-// src/api/sensorData.ts
+import { apiRequest } from './auth';
 
-export async function fetchSensorData() {
-  // Simulamos una API con retardo
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+export interface SensorItem {
+  name: string;
+  value: string;
+  unit: string;
+}
 
-  // Retornamos valores dinámicos
-  return {
-    sensors: [
-      { name: 'Humedad', value: (70 + Math.random() * 30).toFixed(1), unit: '%' },
-      { name: 'Corriente', value: (1 + Math.random() * 3).toFixed(2), unit: 'A' },
-      { name: 'Temperatura', value: (22 + Math.random() * 6).toFixed(1), unit: '°C' },
-    ],
-    metrics: [
-      { label: 'Parameter', value: (900 + Math.random() * 50).toFixed(1), unit: 'hPa' },
-      { label: 'Air pressure', value: (900 + Math.random() * 50).toFixed(1), unit: 'hPa' },
-      { label: 'Air humidity', value: (70 + Math.random() * 30).toFixed(1), unit: '%' },
-    ],
-    logs: [
-      { text: 'Sensores actualizados correctamente', time: new Date().toLocaleTimeString() },
-      { text: 'Lectura estable', time: new Date().toLocaleTimeString() },
-    ],
-  };
+export interface MetricItem {
+  label: string;
+  value: string;
+  unit: string;
+}
+
+export interface LogItem {
+  text: string;
+  time: string;
+}
+
+export interface SensorDataResponse {
+  sensors: SensorItem[];
+  metrics: MetricItem[];
+  logs: LogItem[];
+}
+
+export async function fetchSensorData(): Promise<SensorDataResponse> {
+  const token = localStorage.getItem('accessToken');
+  if (!token) {
+     // Si no hay token, retornamos datos vacíos o lanzamos error.
+     // Para evitar romper la UI si no está logueado (aunque debería estar protegido por ruta), retornamos mock o error.
+     // Dado que ProtectedRoute se usa, debería haber token.
+     throw new Error("No authorization token found");
+  }
+
+  try {
+    return await apiRequest<SensorDataResponse>('/data/sensors', {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching sensor data:", error);
+    // Fallback temporal si falla el backend para no romper la demo completamente
+    throw error;
+  }
 }
