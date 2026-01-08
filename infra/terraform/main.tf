@@ -102,47 +102,43 @@ resource "aws_instance" "sentinel" {
     #!/bin/bash
     set -e
 
+    # Actualizar sistema
     apt-get update -y
     apt-get upgrade -y
 
-    # Instalar dependencias
+    # Dependencias
     apt-get install -y ca-certificates curl gnupg git
 
-    # Instalar Docker
-    install -m 0755 -d /etc/apt/keyrings
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-    chmod a+r /etc/apt/keyrings/docker.gpg
-
-    echo \
-      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-      https://download.docker.com/linux/ubuntu \
-      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
-      > /etc/apt/sources.list.d/docker.list
-
-    apt-get update -y
-    apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+    # Instalar Docker (método estable)
+    curl -fsSL https://get.docker.com | sh
 
     # Habilitar Docker
     systemctl enable docker
     systemctl start docker
 
-    # Usuario ubuntu
+    # Instalar docker-compose v1 (NO v2)
+    curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" \
+    -o /usr/local/bin/docker-compose
+    chmod +x /usr/local/bin/docker-compose
+
+    # Permisos usuario ubuntu
     usermod -aG docker ubuntu
 
-    # Esperar a que Docker esté listo
-    sleep 20
+    # Esperar a Docker
+    sleep 30
 
+    # Clonar repo
     cd /home/ubuntu
-
-    # Clonar rama develop
     git clone -b develop https://github.com/ISCOUTB/Sentinel.git
     chown -R ubuntu:ubuntu Sentinel
 
-    cd Sentinel
+    # Desactivar BuildKit (CRÍTICO)
+    export DOCKER_BUILDKIT=0
+    export COMPOSE_DOCKER_CLI_BUILD=0
 
-    # Levantar contenedores
-    sudo docker compose up -d
-
+    # Levantar contenedores DESDE LA RUTA CORRECTA
+    #cd /home/ubuntu/Sentinel/infra/docker
+    #/usr/local/bin/docker-compose up -d --build
   EOF
 
 }
