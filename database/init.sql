@@ -1,15 +1,16 @@
--- Crear tabla de usuarios si no existe
-CREATE TABLE IF NOT EXISTS users (
+-- Crear tabla de usuarios
+-- En desarrollo, dropear para asegurar esquema limpio
+-- En producción, usar ALTER TABLE para migraciones
+SET @drop_tables = IFNULL(@drop_tables, 'false');
+
+DROP TABLE IF EXISTS users;
+CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    username VARCHAR(100) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    role ENUM('admin', 'technician') NOT NULL,
-    first_name VARCHAR(100),
-    last_name VARCHAR(100),
-    organization VARCHAR(255),
-    phone VARCHAR(20),
-    contact_email VARCHAR(255),
+    username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    hashed_password VARCHAR(255) NOT NULL,
+    role VARCHAR(20) NOT NULL DEFAULT 'user',
+    is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -44,17 +45,19 @@ INSERT IGNORE INTO role_permissions (role, permission_id) VALUES
 ('technician', 1), ('technician', 4), ('technician', 5);
 
 -- Crear tabla de refresh tokens
-CREATE TABLE IF NOT EXISTS refresh_tokens (
+DROP TABLE IF EXISTS refresh_tokens;
+CREATE TABLE refresh_tokens (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     token VARCHAR(500) UNIQUE NOT NULL,
     expires_at TIMESTAMP NOT NULL,
+    is_revoked BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- Insertar datos de prueba
-INSERT IGNORE INTO users (email, username, password, role, first_name, last_name, organization, phone, contact_email) VALUES
-('admin@example.com', 'admin', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj6fM/yqqqS', 'admin', 'Admin', 'User', 'USV Corp', '+1234567890', 'admin@usvcorp.com'),
-('tech1@example.com', 'tech1', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj6fM/yqqqS', 'technician', 'John', 'Doe', 'Tech Solutions', '+0987654321', 'john.doe@techsolutions.com'),
-('tech2@example.com', 'tech2', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj6fM/yqqqS', 'technician', 'Jane', 'Smith', 'Innovate Inc', '+1122334455', 'jane.smith@innovate.com');
+INSERT IGNORE INTO users (username, email, hashed_password, role) VALUES
+('admin', 'admin@example.com', '$2b$12$wcvlhPkhoS6/4qfnOXcJOOER./IgBh78dPBP01T2YiMa4FNpeOKsi', 'admin'),
+('tech1', 'tech1@example.com', '$2b$12$wcvlhPkhoS6/4qfnOXcJOOER./IgBh78dPBP01T2YiMa4FNpeOKsi', 'user'),
+('tech2', 'tech2@example.com', '$2b$12$wcvlhPkhoS6/4qfnOXcJOOER./IgBh78dPBP01T2YiMa4FNpeOKsi', 'user');
