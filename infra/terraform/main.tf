@@ -38,13 +38,6 @@ resource "aws_security_group" "docker_sg" {
   }
 
   ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
     from_port   = 8000
     to_port     = 8000
     protocol    = "tcp"
@@ -88,7 +81,7 @@ data "aws_ami" "ubuntu_22_04" {
 
 resource "aws_instance" "sentinel" {
   ami                    = data.aws_ami.ubuntu_22_04.id
-  instance_type          = "t3.micro"
+  instance_type          = "t3.medium"
   key_name               = aws_key_pair.sentinel_ec2_key_pair.key_name
   vpc_security_group_ids = [aws_security_group.docker_sg.id]
 
@@ -129,16 +122,16 @@ resource "aws_instance" "sentinel" {
 
     # Clonar repo
     cd /home/ubuntu
-    git clone -b develop https://github.com/ISCOUTB/Sentinel.git
+    git clone -b instance-vm https://github.com/ISCOUTB/Sentinel.git
     chown -R ubuntu:ubuntu Sentinel
 
     # Desactivar BuildKit (CRÍTICO)
-    export DOCKER_BUILDKIT=0
-    export COMPOSE_DOCKER_CLI_BUILD=0
+    #export DOCKER_BUILDKIT=0
+    #export COMPOSE_DOCKER_CLI_BUILD=0
 
     # Levantar contenedores DESDE LA RUTA CORRECTA
-    #cd ~/Sentinel/infra/docker
-    #/usr/local/bin/docker-compose up -d --build
+    cd ~/Sentinel/infra/docker
+    /usr/local/bin/docker-compose up -d --build
   EOF
 
 }
