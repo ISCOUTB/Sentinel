@@ -58,6 +58,6 @@ CREATE TABLE refresh_tokens (
 
 -- Insertar datos de prueba
 INSERT IGNORE INTO users (username, email, hashed_password, role) VALUES
-('admin', 'admin@example.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj6fM/yqqqS', 'admin'),
-('tech1', 'tech1@example.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj6fM/yqqqS', 'user'),
-('tech2', 'tech2@example.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj6fM/yqqqS', 'user');
+('admin', 'admin@example.com', '$2b$12$wcvlhPkhoS6/4qfnOXcJOOER./IgBh78dPBP01T2YiMa4FNpeOKsi', 'admin'),
+('tech1', 'tech1@example.com', '$2b$12$wcvlhPkhoS6/4qfnOXcJOOER./IgBh78dPBP01T2YiMa4FNpeOKsi', 'user'),
+('tech2', 'tech2@example.com', '$2b$12$wcvlhPkhoS6/4qfnOXcJOOER./IgBh78dPBP01T2YiMa4FNpeOKsi', 'user');
