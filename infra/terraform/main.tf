@@ -126,8 +126,8 @@ resource "aws_instance" "sentinel" {
     chown -R ubuntu:ubuntu Sentinel
 
     # Desactivar BuildKit (CRÍTICO)
-    #export DOCKER_BUILDKIT=0
-    #export COMPOSE_DOCKER_CLI_BUILD=0
+    export DOCKER_BUILDKIT=0
+    export COMPOSE_DOCKER_CLI_BUILD=0
 
     # Levantar contenedores DESDE LA RUTA CORRECTA
     cd ~/Sentinel/infra/docker
