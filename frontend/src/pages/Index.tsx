@@ -1,10 +1,16 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import MapView from '@/components/MapView';
 import SensorPanel from '@/components/SensorPanel';
 import StatusBar from '@/components/StatusBar';
 import AlertNotification from '@/components/AlertNotification';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
 
 const Index = () => {
+  const navigate = useNavigate();
+  const { logout, user } = useAuth();
+
   // Guardamos el tiempo transcurrido en segundos
   const [elapsedTime, setElapsedTime] = useState(0);
 
@@ -37,6 +43,11 @@ const Index = () => {
       .padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+  };
+
   return (
     <div className="h-screen bg-background text-foreground p-4 flex flex-col overflow-hidden">
       <div className="max-w-[1920px] mx-auto w-full h-full flex flex-col">
@@ -45,16 +56,24 @@ const Index = () => {
           <h1 className="text-2xl font-bold">
             Sistema de Monitoreo de Aguas
           </h1>
-          <div className="text-right">
-            <p className="text-xs text-muted-foreground">
-              {formatDate(new Date())}
-            </p>
-            <p className="text-sm font-semibold">
-              Tiempo de actividad:{' '}
-              <span className="font-mono text-primary">
-                {formatElapsed(elapsedTime)}
-              </span>
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground">
+                Usuario: {user?.username || 'Cargando...'}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {formatDate(new Date())}
+              </p>
+              <p className="text-sm font-semibold">
+                Tiempo de actividad:{' '}
+                <span className="font-mono text-primary">
+                  {formatElapsed(elapsedTime)}
+                </span>
+              </p>
+            </div>
+            <Button onClick={handleLogout} variant="outline">
+              Cerrar Sesión
+            </Button>
           </div>
         </header>
 

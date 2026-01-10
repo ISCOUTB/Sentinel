@@ -143,6 +143,22 @@ backend/
 - **Access Token**: Válido por 6 horas. Usar en el header `Authorization: Bearer <access_token>` para acceder a rutas protegidas.
 - **Refresh Token**: Válido por 7 días. Usar para obtener nuevos access tokens sin volver a loguear.
 
+## Base de Datos
+
+### Inicialización
+El archivo `database/init.sql` se ejecuta automáticamente al iniciar el contenedor backend. Este script:
+
+- **En desarrollo**: Elimina y recrea las tablas para asegurar un esquema limpio
+- **En producción**: ⚠️ **ADVERTENCIA** - Actualmente elimina datos existentes. Para producción, cambiar `DROP TABLE IF EXISTS` por `CREATE TABLE IF NOT EXISTS` y usar migraciones (ej. Alembic) para preservar datos.
+
+### Comportamiento Actual
+- Las tablas `users` y `refresh_tokens` se eliminan y recrean en cada inicio
+- Se insertan datos de prueba automáticamente
+- **Para mantener datos entre reinicios**: Modificar `init.sql` para usar `ALTER TABLE` en lugar de `DROP TABLE`
+
+### Migraciones Futuras
+Se recomienda implementar Alembic para migraciones de esquema en producción.
+
 ## Configuración
 
 ### Variables de Entorno (.env)

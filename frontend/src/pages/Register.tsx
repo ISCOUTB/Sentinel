@@ -2,16 +2,16 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import logo from "@/assets/pngwing.com.png";
 import { generateUsername } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Register = () => {
   const navigate = useNavigate();
+  const { register } = useAuth();
 
   const [formData, setFormData] = useState({
     name: "",
     lastName: "",
     email: "",
-    organization: "",
-    phone: "",
     password: "",
     confirmPassword: "",
   });
@@ -26,49 +26,55 @@ const Register = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError("");
+    setSuccess("");
 
-    const { name, lastName, email, organization, phone, password, confirmPassword } = formData;
+    const { name, lastName, email, password, confirmPassword } = formData;
 
     // Validaciones
-    if (!name || !lastName || !email || !organization || !phone || !password || !confirmPassword) {
-      setError("Todos los campos son obligatorios");
-      setSuccess("");
+    if (!name || !lastName || !email || !password || !confirmPassword) {
+      setError("Nombre, apellido, email y contraseña son obligatorios");
+      return;
+    }
+
+    if (password.length < 8) {
+      setError("La contraseña debe tener al menos 8 caracteres");
       return;
     }
 
     if (password !== confirmPassword) {
       setError("Las contraseñas no coinciden");
-      setSuccess("");
       return;
     }
 
-    // Generar username
-    const username = generateUsername(name, lastName, phone);
+    try {
+      // Generar username
+      const username = generateUsername(name, lastName, "");
 
-    // Guardar en localStorage (solo pruebas)
-    localStorage.setItem("username", username);
-    localStorage.setItem("password", password);
+      const userData = {
+        username,
+        email,
+        password,
+        role: "user",
+      };
 
-    // Mostrar mensaje de éxito
-    setError("");
-    setSuccess(`Registration successful. Your username is ${username}`);
+      console.log('Datos a enviar:', userData);
 
-    console.log("Usuario a registrar:", {
-      name,
-      lastName,
-      email,
-      organization,
-      phone,
-      username,
-      password, // solo para pruebas, nunca en producción
-    });
+      // Registrar usuario
+      await register(userData);
 
-    // Navegar al login después de 4s
-    setTimeout(() => {
-      navigate("/");
-    }, 4000);
+      // Mostrar mensaje de éxito
+      setSuccess(`Registro exitoso. Tu nombre de usuario es ${username}. Ahora puedes iniciar sesión.`);
+
+      // Navegar al login después de 3s
+      setTimeout(() => {
+        navigate("/");
+      }, 3000);
+    } catch (error: any) {
+      setError(error.message || "Error al registrar usuario");
+    }
   };
 
   return (
@@ -88,15 +94,7 @@ const Register = () => {
         </div>
         <div className="input-group">
           <label>Email</label>
-          <input type="email" name="email" value={formData.email} onChange={handleChange}/> 
-        </div>
-        <div className="input-group">
-          <label>Organization</label>
-          <input name="organization" value={formData.organization} onChange={handleChange}/>
-        </div>
-        <div className="input-group">
-          <label>Phone</label>
-          <input name="phone" value={formData.phone} onChange={handleChange}/>
+          <input type="email" name="email" value={formData.email} onChange={handleChange}/>
         </div>
         <div className="input-group">
           <label>Password</label>

@@ -36,3 +36,31 @@ class TokenData(BaseModel):
 
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
+
+class SensorItem(BaseModel):
+    name: str
+    value: str
+    unit: str
+
+class MetricItem(BaseModel):
+    label: str
+    value: str
+    unit: str
+
+class LogItem(BaseModel):
+    text: str
+    time: str
+
+class SensorDataResponse(BaseModel):
+    sensors: list[SensorItem]
+    metrics: list[MetricItem]
+    logs: list[LogItem]
+
+class MapCoordinates(BaseModel):
+    lat: float
+    lng: float
+
+class MapDataResponse(BaseModel):
+    location: str
+    mode: str
+    coordinates: MapCoordinates
