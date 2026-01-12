@@ -34,3 +34,5 @@ mykey.pub
 mykey
 .terraform
 variables.tfvars
+.terraform.tfstate
+.terraform.tfstate.backup
