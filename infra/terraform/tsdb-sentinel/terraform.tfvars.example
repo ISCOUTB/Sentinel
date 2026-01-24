@@ -1,0 +1,13 @@
+#Plantilla de variables tfvars para pruebas individuales en terraform
+aws_region         = "us-east-1"
+my_access_key = "TU_ACCESS_KEY_AQUI"
+my_secret_key = "TU_SECRET_KEY_AQUI"
+
+db_instance_name="mi-influxdb-instance"
+db_username="admin"
+db_password="tu-contraseña-segura-aqui"
+organization_name="mi-organizacion"
+bucket_name="mi-bucket-inicial"
+allocated_storage=20 #Minimo de capacida para influxdb
+db_instance_type="db.influx.medium" #Intacia minima
+publicly_accessible=true
