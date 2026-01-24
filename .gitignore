@@ -27,12 +27,11 @@ dist-ssr
 .env
 __pycache__/
 
-terraform.tfstate
+#Terraform files
 terraform.tfstate.backup
 .terraform.lock.hcl
 mykey.pub
 mykey
 .terraform
-variables.tfvars
-.terraform.tfstate
-.terraform.tfstate.backup
+*.tfvars
+*.tfstate
