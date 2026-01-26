@@ -1,3 +1,7 @@
+data "aws_region" "current" {}
+
+data "aws_caller_identity" "current" {}
+
 resource "aws_iot_thing" "usv" {
   name = var.thing_name
 }
@@ -13,9 +17,32 @@ resource "aws_iot_policy" "usv_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        Effect   = "Allow"
-        Action   = ["iot:*"]
-        Resource = ["*"]
+        Effect = "Allow"
+        Action = ["iot:Connect"]
+        Resource = [
+          "arn:aws:iot:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:client/${var.thing_name}"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = ["iot:Publish", "iot:Receive"]
+        Resource = [
+          "arn:aws:iot:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:topic/${var.thing_name}/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = ["iot:Subscribe"]
+        Resource = [
+          "arn:aws:iot:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:topicfilter/${var.thing_name}/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = ["iot:GetThingShadow", "iot:UpdateThingShadow"]
+        Resource = [
+          "arn:aws:iot:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:thing/${var.thing_name}"
+        ]
       }
     ]
   })
