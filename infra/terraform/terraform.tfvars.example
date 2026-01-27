@@ -1,0 +1,41 @@
+# ==========================================
+# Plantilla de variables tfvars para Terraform
+# ==========================================
+
+# ==========================================
+# AWS Credentials
+# ==========================================
+my_access_key = "TU_ACCESS_KEY_AQUI"
+my_secret_key = "TU_SECRET_KEY_AQUI"
+aws_region     = "us-east-1"
+
+# ==========================================
+# VM Sentinel Configuration
+# ==========================================
+region_sentinel     = "us-east-1"
+repo_branch         = "develop"
+secret_key          = "your-secret-key-here-change-this-in-production"
+
+# MySQL Configuration
+mysql_root_password = "rootpassword"
+mysql_database      = "usv_hmi"
+mysql_user          = "usv_user"
+mysql_password      = "usv_password"
+
+# ==========================================
+# TSDB Sentinel (InfluxDB) Configuration
+# ==========================================
+db_instance_name    = "mi-influxdb-instance"
+db_username         = "admin"
+db_password         = "tu-contraseña-segura-aqui"
+organization_name   = "mi-organizacion"
+bucket_name         = "mi-bucket-inicial"
+allocated_storage   = 20
+db_instance_type    = "db.influx.medium"
+publicly_accessible = true
+
+# ==========================================
+# IoT Core Configuration
+# ==========================================
+thing_name      = "usv_thing"
+iot_policy_name = "usv-iot-policy"
