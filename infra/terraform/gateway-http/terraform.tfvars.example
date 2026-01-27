@@ -1,0 +1,1 @@
+backend_ip = "ip" ## Reemplaza con la IP pública de tu instancia EC2 manualmente.

@@ -1,6 +1,5 @@
-output "elastic_ip" {
-  description = "Elastic IP asociada a la instancia Sentinel"
-  value       = aws_eip.sentinel_eip.public_ip
+output "backend_ip" {
+  value = var.backend_ip
 }
 output "api_gateway_url" {
   description = "URL pública del API Gateway"

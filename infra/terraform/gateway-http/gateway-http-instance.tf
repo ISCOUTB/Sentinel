@@ -15,7 +15,7 @@ resource "aws_apigatewayv2_integration" "sentinel_integration" {
   api_id           = aws_apigatewayv2_api.sentinel_api.id
   integration_type = "HTTP_PROXY"
   integration_method = "ANY"
-  integration_uri    = "http://${aws_eip.sentinel_eip.public_ip}:8000"
+  integration_uri    = "http://${var.backend_ip}:8080"
 }
 
 # crea la ruta catch-all para la integración
