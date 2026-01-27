@@ -48,6 +48,11 @@ module "tsdb-sentinel" {
 module "iot-core" {
   source = "./iot"
 
+  # AWS Credentials
+  my_access_key    = var.my_access_key
+  my_secret_key    = var.my_secret_key
+  region_sentinel  = var.region_sentinel
+
   thing_name      = var.thing_name
   iot_policy_name = var.iot_policy_name
 }
@@ -55,6 +60,11 @@ module "iot-core" {
 # Módulo Gateway HTTP - API Gateway
 module "gateway-http" {
   source = "./gateway-http"
+
+  # AWS Credentials
+  my_access_key = var.my_access_key
+  my_secret_key = var.my_secret_key
+  aws_region    = var.aws_region
 
   backend_ip = module.vm-sentinel.elastic_ip
 }
