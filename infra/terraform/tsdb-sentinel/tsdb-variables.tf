@@ -35,6 +35,12 @@ variable "bucket_name" {
   default     = "mi-bucket-inicial"
 }
 
+variable "additional_buckets" {
+  description = "Lista de nombres de buckets adicionales a crear en InfluxDB"
+  type        = list(string)
+  default     = []
+}
+
 variable "allocated_storage" {
   description = "Almacenamiento asignado en GB para la instancia InfluxDB"
   type        = number
