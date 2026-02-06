@@ -1,0 +1,81 @@
+# ============================================================================
+# USV IoT Simulation Configuration (TOML)
+# Proyecto: El Barquito
+# ============================================================================
+
+# ---------------------------------------------------------------------------
+# Data Combination Codes
+# ---------------------------------------------------------------------------
+
+[combination_codes]
+general_usv_status_data = 1
+mission_data = 2
+log_data = 4
+general_usv_status_and_mission = 3
+general_usv_status_and_log = 5
+mission_and_log = 6
+all_data_combined = 7
+
+# ---------------------------------------------------------------------------
+# General USV Status Data  → Topic: general_usv_status
+# ---------------------------------------------------------------------------
+
+[general_usv_status]
+usv_id = "USV-001"
+conexion = "ONLINE"
+actividad = "EN_MISION"
+bateria_porcentaje = 85
+
+corriente_motor_1_a = 15.5
+corriente_motor_2_a = 16.2
+
+voltaje_celda_1_v = 3.85
+voltaje_celda_2_v = 3.86
+voltaje_celda_3_v = 3.84
+
+timestamp_utc = "2025-10-07T17:55:00.123Z"
+
+[general_usv_status.giroscopio]
+roll_grados = 5.2
+pitch_grados = -1.1
+yaw_grados = 185.0
+
+[general_usv_status.ubicacion_gps]
+latitud = 10.4005
+longitud = -75.5002
+
+# ---------------------------------------------------------------------------
+# Mission Data  → Topic: mission
+# ---------------------------------------------------------------------------
+
+[mission]
+mission_id = "MISION-20251007-001"
+usv_id = "USV-001"
+tipo_mision = "Muestreo de Calidad de Agua"
+estado_mision = "EN_PROGRESO"
+timestamp_utc = "2025-10-07T17:55:00.123Z"
+
+[[mission.puntos_muestreo]]
+punto_id = "PUNTO-001"
+latitud = 10.4005
+longitud = -75.5002
+profundidad_m = 5
+
+[mission.puntos_muestreo.variables_recogidas]
+temperatura_agua_c = 25.4
+ph_agua = 7.21
+turbidez_ntu = 15.8
+oxigeno_disuelto_ppm = 8.5
+
+# ---------------------------------------------------------------------------
+# Log Data  → Topic: logs
+# ---------------------------------------------------------------------------
+
+[logs]
+log_id = "LOG-20251007-001"
+usv_id = "USV-001"
+mission_id = "MISION-20251007-001"
+nivel = "INFO"
+mensaje = "Inicio de misión de muestreo"
+codigo = 101
+timestamp_utc = "2025-10-07T17:54:55Z"
