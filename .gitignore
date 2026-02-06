@@ -35,3 +35,6 @@ mykey
 .terraform
 *.tfvars
 *.tfstate
+terraform/lambda_influxdb_iotcore/lambda_function.zip
+package/
+lambda_function.zip

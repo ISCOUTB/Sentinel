@@ -71,3 +71,10 @@ variable "my_secret_key" {
   type        = string
   sensitive   = true
 }
+
+
+variable "db_port" {
+  description = "Puerto de la instancia InfluxDB"
+  type        = number
+  default     = 8086
+}

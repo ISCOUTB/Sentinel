@@ -1,0 +1,34 @@
+# Example configuration for lambda_influxdb_iotcore module
+
+aws_region      = "us-east-1"
+my_access_key = "TU_ACCESS_KEY_AQUI"
+my_secret_key = "TU_SECRET_KEY_AQUI"
+
+lambda_name     = "iot_to_influxdb_v3"
+
+# InfluxDB Connection Details
+influxdb_url    = "https://<your-instance-id>.timestream-influxdb.us-east-1.on.aws:8086"
+# Default Bucket (Fallback if no bucket is specified in the rule)
+influxdb_bucket = "general_status"
+influxdb_org    = "my-organization"
+
+# Credentials
+influxdb_username            = "admin"
+influxdb_password = "tu-contraseña-segura-aqui"
+
+# IoT Core Rules
+# "key" = { sql = "SQL QUERY", bucket = "INFLUX_BUCKET" }
+iot_rules = {
+  "rule_mission" = {
+    sql    = "SELECT *, 'mission' as influx_bucket FROM 'usv/mission/data'"
+    bucket = "mission"
+  }
+  "rule_logs" = {
+    sql    = "SELECT *, 'logs' as influx_bucket FROM 'usv/logs/data'"
+    bucket = "logs"
+  }
+  "rule_status" = {
+    sql    = "SELECT *, 'general_status' as influx_bucket FROM 'usv/status/data'"
+    bucket = "general_status"
+  }
+}

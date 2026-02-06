@@ -7,6 +7,7 @@ resource "aws_timestreaminfluxdb_db_instance" "influxdb_instance" {
   bucket            = var.bucket_name
   allocated_storage = var.allocated_storage
   db_instance_type  = var.db_instance_type
+  port              = var.db_port
 
   vpc_subnet_ids         = [aws_subnet.influxdb_public_subnet_1.id, aws_subnet.influxdb_public_subnet_2.id]
   vpc_security_group_ids = [aws_security_group.influxdb_sg.id]
