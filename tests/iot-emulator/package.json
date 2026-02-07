@@ -1,0 +1,20 @@
+{
+  "name": "iot-emulator",
+  "version": "1.0.0",
+  "description": "Se instalan unas dependencias para poder correr este script",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@iarna/toml": "^2.2.5",
+    "aws-iot-device-sdk": "^2.2.16",
+    "aws-iot-device-sdk-v2": "^1.25.0",
+    "dotenv": "^17.2.4",
+    "fs": "^0.0.1-security",
+    "toml": "^3.0.0"
+  }
+}

@@ -6,6 +6,8 @@
 # ---------------------------------------------------------------------------
 # Data Combination Codes
 # ---------------------------------------------------------------------------
+[simulation]
+active_combination_code = 7
 
 [combination_codes]
 general_usv_status_data = 1
