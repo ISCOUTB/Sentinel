@@ -67,3 +67,11 @@ output "api_gateway_url" {
   description = "URL pública del API Gateway"
   value       = module.gateway-http.api_gateway_url
 }
+
+# ==========================================
+# Outputs Gateway WebSocket
+# ==========================================
+output "websocket_url" {
+  description = "URL del WebSocket"
+  value = module.websocket.ws_url
+}
