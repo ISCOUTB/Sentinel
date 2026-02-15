@@ -20,7 +20,8 @@ variable "aws_region" {
 
 # WebSocket Gateway Configuration
 variable "project_name" {
-  type        = string
   description = "Nombre del proyecto"
+  type        = string
+  default     = "sentinel"
 }
 
