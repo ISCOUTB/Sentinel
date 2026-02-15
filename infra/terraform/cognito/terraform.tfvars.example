@@ -1,0 +1,4 @@
+my_access_key    = "TU_ACCESS_KEY"
+my_secret_key    = "TU_SECRET_KEY"
+region_sentinel  = "us-east-1"
+project_name     = "sentinel"
