@@ -130,3 +130,34 @@ variable "iot_policy_name" {
   type        = string
   default     = "usv-iot-policy"
 }
+
+# ==========================================
+# Variables Lambda IoT -> InfluxDB
+# ==========================================
+variable "lambda_function_name" {
+  description = "Nombre de la función Lambda para procesar datos IoT y enviarlos a InfluxDB"
+  type        = string
+  default     = "iot-to-influxdb"
+}
+
+variable "iot_rules" {
+  description = "Map of rule names to configuration (sql, bucket)"
+  type = map(object({
+    sql    = string
+    bucket = string
+  }))
+  default = {
+    "usv_mission" = {
+      sql    = "SELECT *, 'mission' as influx_bucket FROM 'usv/mission/data'"
+      bucket = "mission"
+    }
+    "usv_logs" = {
+      sql    = "SELECT *, 'logs' as influx_bucket FROM 'usv/logs/data'"
+      bucket = "logs"
+    }
+    "usv_status" = {
+      sql    = "SELECT *, 'general_status' as influx_bucket FROM 'usv/status/data'"
+      bucket = "general_status"
+    }
+  }
+}
