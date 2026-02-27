@@ -31,3 +31,35 @@ resource "aws_apigatewayv2_stage" "sentinel_stage" {
   name        = "$default"
   auto_deploy = true
 }
+
+resource "aws_apigatewayv2_authorizer" "cognito_jwt" {
+  name            = "sentinel-jwt-authorizer"
+  api_id          = aws_apigatewayv2_api.http_api.id
+  authorizer_type = "JWT"
+
+  identity_sources = ["$request.header.Authorization"]
+
+  jwt_configuration {
+    issuer   = "https://cognito-idp.us-east-1.amazonaws.com/${var.user_pool_id}"
+    audience = [var.user_pool_client_id]
+  }
+}
+
+resource "aws_apigatewayv2_route" "get_users" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "GET /users"
+
+  target = "integrations/${aws_apigatewayv2_integration.fastapi.id}"
+
+  authorization_type = "JWT"
+  authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
+}
+
+resource "aws_apigatewayv2_route" "public_health" {
+  api_id    = aws_apigatewayv2_api.http_api.id
+  route_key = "GET /health"
+
+  target = "integrations/${aws_apigatewayv2_integration.fastapi.id}"
+
+  authorization_type = "NONE"
+}

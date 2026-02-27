@@ -27,6 +27,11 @@ resource "aws_cognito_user_pool" "sentinel_pool" {
   }
 }
 
+resource "aws_cognito_user_pool_domain" "sentinel_domain" {
+  domain       = "${var.project_name}-auth"
+  user_pool_id = aws_cognito_user_pool.sentinel_pool.id
+}
+
 resource "aws_cognito_user_pool_client" "sentinel_client" {
   name         = "${var.project_name}-app-client"
   user_pool_id = aws_cognito_user_pool.sentinel_pool.id
@@ -42,6 +47,34 @@ resource "aws_cognito_user_pool_client" "sentinel_client" {
   supported_identity_providers = ["COGNITO"]
 
   prevent_user_existence_errors = "ENABLED"
+
+  allowed_oauth_flows_user_pool_client = true
+
+  allowed_oauth_flows = ["code"]
+
+  allowed_oauth_scopes = [
+    "openid",
+    "email",
+    "profile"
+  ]
+
+  callback_urls = [
+    "http://localhost:3000",
+  ]
+
+  logout_urls = [
+    "http://localhost:3000",
+  ]
+  
+  access_token_validity = 60
+  id_token_validity     = 60
+  refresh_token_validity = 30
+
+  token_validity_units {
+    access_token  = "minutes"
+    id_token      = "minutes"
+    refresh_token = "days"
+  }
 }
 
 # Roles por grupos (admin/user)

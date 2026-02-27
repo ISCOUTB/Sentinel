@@ -18,6 +18,16 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
+variable "user_pool_id" {
+  description = "Cognito User Pool ID"
+  type        = string
+}
+
+variable "user_pool_client_id" {
+  description = "Cognito App Client ID"
+  type        = string
+}
+
 # Gateway Configuration
 variable "backend_ip" {
   description = "IP pública del backend EC2"
