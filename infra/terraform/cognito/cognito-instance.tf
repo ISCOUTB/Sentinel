@@ -62,14 +62,14 @@ resource "aws_cognito_user_pool_client" "sentinel_client" {
 
   logout_urls = var.logout_urls
   
-  access_token_validity = 60
-  id_token_validity     = 60
-  refresh_token_validity = 30
+  access_token_validity = var.access_token_validity
+  id_token_validity     = var.id_token_validity
+  refresh_token_validity = var.refresh_token_validity
 
   token_validity_units {
-    access_token  = "minutes"
-    id_token      = "minutes"
-    refresh_token = "days"
+    access_token  = var.access_token_validity_unit
+    id_token      = var.id_token_validity_unit
+    refresh_token = var.refresh_token_validity_unit
   }
 }
 

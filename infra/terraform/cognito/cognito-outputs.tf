@@ -7,7 +7,7 @@ output "user_pool_client_id" {
 }
 
 output "issuer_url" {
-  value = "https://cognito-idp.us-east-1.amazonaws.com/${aws_cognito_user_pool.sentinel_pool.id}"
+  value = "https://cognito-idp.${var.aws_region}.amazonaws.com/${aws_cognito_user_pool.sentinel_pool.id}"
 }
 
 output "region" {

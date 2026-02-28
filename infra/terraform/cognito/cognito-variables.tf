@@ -66,3 +66,39 @@ variable "logout_urls" {
   type        = list(string)
   default     = ["http://localhost:3000"]
 }
+
+variable "access_token_validity" {
+  description = "Tiempo de validez del access token en minutos"
+  type        = number
+  default     = 60
+}
+
+variable "id_token_validity" {
+  description = "Tiempo de validez del id token en minutos"
+  type        = number
+  default     = 60
+}
+
+variable "refresh_token_validity" {
+  description = "Tiempo de validez del refresh token en días"
+  type        = number
+  default     = 30
+}
+
+variable "access_token_validity_unit" {
+  description = "Unidad de tiempo para el access token"
+  type        = string
+  default     = "minutes"
+}
+
+variable "id_token_validity_unit" {
+  description = "Unidad de tiempo para el id token"
+  type        = string
+  default     = "minutes"
+}
+
+variable "refresh_token_validity_unit" {
+  description = "Unidad de tiempo para el refresh token"
+  type        = string
+  default     = "days"
+}
