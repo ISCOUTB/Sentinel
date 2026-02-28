@@ -4,6 +4,7 @@ import random
 import datetime
 from app.schemas.schemas import SensorDataResponse, MapDataResponse, SensorItem, MetricItem, LogItem, MapCoordinates
 from app.dependencies.auth import get_current_user
+from app.core.security import require_admin, require_user
 
 router = APIRouter(prefix="/data", tags=["data"])
 
@@ -40,3 +41,28 @@ def get_map_data(current_user = Depends(get_current_user)):
         mode="2d" if random.random() > 0.5 else "3d",
         coordinates=MapCoordinates(lat=10.3910, lng=-75.4794)
     )
+
+
+@router.get("/admin-data")
+def admin_data(user=Depends(require_admin)):
+    """
+    Endpoint solo accesible para usuarios con rol 'admin'.
+    """
+    return {
+        "message": "Solo admins",
+        "user_sub": user["sub"],
+        "user_email": user["email"]
+    }
+
+
+@router.get("/user-data")
+def user_data(user=Depends(require_user)):
+    """
+    Endpoint accesible para usuarios autenticados con rol 'user' o 'admin'.
+    """
+    return {
+        "message": "Usuarios autenticados",
+        "user_sub": user["sub"],
+        "user_email": user["email"],
+        "roles": user["roles"]
+    }
