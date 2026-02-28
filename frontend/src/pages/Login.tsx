@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { User, Lock } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import logo from "@/assets/pngwing.com.png";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -8,11 +8,20 @@ import { useAuth } from "@/contexts/AuthContext";
 const Login = () => {
 
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Si vienes de ConfirmEmail, pre-rellenar el email
+  useEffect(() => {
+    const email = location.state?.email;
+    if (email) {
+      setUsername(email);
+    }
+  }, [location.state]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +35,7 @@ const Login = () => {
     }
 
     try {
-      await login({ username, password });
+      await login(username, password);
       navigate("/hmi");
     } catch (error: any) {
       setError(error.message || "Error al iniciar sesión");
@@ -42,11 +51,12 @@ const Login = () => {
         <h1>Login</h1>
         {error && <p className="form-error">{error}</p>}
         <div className="input-group">
-          <label>Username</label>
+          <label>Email</label>
           <input
-            type="text"
+            type="email"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            placeholder="tu@email.com"
           />
           <User className="icon" />
         </div>

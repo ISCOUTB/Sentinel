@@ -58,13 +58,9 @@ resource "aws_cognito_user_pool_client" "sentinel_client" {
     "profile"
   ]
 
-  callback_urls = [
-    "http://localhost:3000",
-  ]
+  callback_urls = var.callback_urls
 
-  logout_urls = [
-    "http://localhost:3000",
-  ]
+  logout_urls = var.logout_urls
   
   access_token_validity = 60
   id_token_validity     = 60

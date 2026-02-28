@@ -34,7 +34,7 @@ resource "aws_apigatewayv2_stage" "sentinel_stage" {
 
 resource "aws_apigatewayv2_authorizer" "cognito_jwt" {
   name            = "sentinel-jwt-authorizer"
-  api_id          = aws_apigatewayv2_api.http_api.id
+  api_id          = aws_apigatewayv2_api.sentinel_api.id
   authorizer_type = "JWT"
 
   identity_sources = ["$request.header.Authorization"]
@@ -46,20 +46,20 @@ resource "aws_apigatewayv2_authorizer" "cognito_jwt" {
 }
 
 resource "aws_apigatewayv2_route" "get_users" {
-  api_id    = aws_apigatewayv2_api.http_api.id
+  api_id    = aws_apigatewayv2_api.sentinel_api.id
   route_key = "GET /users"
 
-  target = "integrations/${aws_apigatewayv2_integration.fastapi.id}"
+  target = "integrations/${aws_apigatewayv2_integration.sentinel_integration.id}"
 
   authorization_type = "JWT"
   authorizer_id      = aws_apigatewayv2_authorizer.cognito_jwt.id
 }
 
 resource "aws_apigatewayv2_route" "public_health" {
-  api_id    = aws_apigatewayv2_api.http_api.id
+  api_id    = aws_apigatewayv2_api.sentinel_api.id
   route_key = "GET /health"
 
-  target = "integrations/${aws_apigatewayv2_integration.fastapi.id}"
+  target = "integrations/${aws_apigatewayv2_integration.sentinel_integration.id}"
 
   authorization_type = "NONE"
 }

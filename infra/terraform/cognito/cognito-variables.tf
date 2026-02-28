@@ -54,3 +54,15 @@ variable "password_require_symbols" {
   type        = bool
   default     = false
 }
+
+variable "callback_urls" {
+  description = "URLs de callback para Cognito"
+  type        = list(string)
+  default     = ["http://localhost:3000"]
+}
+
+variable "logout_urls" {
+  description = "URLs de logout para Cognito"
+  type        = list(string)
+  default     = ["http://localhost:3000"]
+}

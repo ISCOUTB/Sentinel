@@ -50,28 +50,14 @@ const Register = () => {
     }
 
     try {
-      // Generar username
-      const username = generateUsername(name, lastName, "");
+      // En Cognito, el username es el email (configurado en cognito-instance.tf)
+      console.log('Registrando usuario:', { username: email, email, password });
 
-      const userData = {
-        username,
-        email,
-        password,
-        role: "user",
-      };
+      // Registrar usuario en Cognito (username = email)
+      await register(email, email, password);
 
-      console.log('Datos a enviar:', userData);
-
-      // Registrar usuario
-      await register(userData);
-
-      // Mostrar mensaje de éxito
-      setSuccess(`Registro exitoso. Tu nombre de usuario es ${username}. Ahora puedes iniciar sesión.`);
-
-      // Navegar al login después de 3s
-      setTimeout(() => {
-        navigate("/");
-      }, 3000);
+      // Navegar a la pantalla de confirmación de email
+      navigate("/confirm-email", { state: { email } });
     } catch (error: any) {
       setError(error.message || "Error al registrar usuario");
     }
