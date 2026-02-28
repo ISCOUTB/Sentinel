@@ -16,6 +16,12 @@ resource "aws_apigatewayv2_integration" "sentinel_integration" {
   integration_type = "HTTP_PROXY"
   integration_method = "ANY"
   integration_uri    = "http://${var.backend_ip}:8080"
+
+  request_parameters = {
+  "append:header.x-user-sub"   = "$context.authorizer.jwt.claims.sub"
+  "append:header.x-user-email" = "$context.authorizer.jwt.claims.email"
+  "append:header.x-user-role"  = "$context.authorizer.jwt.claims.cognito:groups"
+}
 }
 
 # crea la ruta catch-all para la integración
