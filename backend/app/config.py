@@ -11,6 +11,23 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "USV HMI Backend"
     API_V1_STR: str = "/api/v1"
     BACKEND_CORS_ORIGINS: Union[str, List[str]] = ["http://localhost:8080", "http://localhost:3000", "http://localhost:5173", "*"]
+    
+    # AWS Cognito Configuration
+    COGNITO_REGION: str = "us-east-1"
+    COGNITO_USER_POOL_ID: str = "us-east-1_T9W1Uy04m"
+    COGNITO_APP_CLIENT_ID: str = "6520h9fk6lrq13puaa66qmtovq"
+
+    # AWS API Gateway and IoT Configuration
+    AWS_REGION: str = "us-east-1"
+    AWS_IOT_ENDPOINT: str = ""
+    API_GATEWAY_WS_ENDPOINT: str = ""
+    API_GATEWAY_HTTP_ENDPOINT: str = ""
+
+    # InfluxDB Configuration
+    INFLUXDB_URL: str = "http://localhost:8086"
+    INFLUXDB_TOKEN: str = ""
+    INFLUXDB_ORG: str = "usv_org"
+    INFLUXDB_BUCKET: str = "usv_telemetry"
 
     class Config:
         env_file = ".env"

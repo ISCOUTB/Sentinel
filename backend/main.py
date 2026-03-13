@@ -5,8 +5,10 @@ import logging
 
 from app.config import settings
 from app.database import create_tables
-from app.routers.auth import router as auth_router
 from app.routers.data import router as data_router
+from app.routers.usv import router as usv_router
+from app.routers.websockets import router as ws_router
+from app.core.iot_handler import iot_handler
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -46,9 +48,15 @@ app.add_middleware(
 
 # Include routers
 app.include_router(
-    auth_router,
+    usv_router,
     prefix=settings.API_V1_STR,
-    tags=["authentication"],
+    tags=["usv"],
+)
+
+app.include_router(
+    ws_router,
+    prefix=settings.API_V1_STR,
+    tags=["websockets"],
 )
 
 app.include_router(

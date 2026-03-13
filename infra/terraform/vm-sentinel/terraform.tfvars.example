@@ -15,3 +15,6 @@ mysql_root_password = "rootpassword"
 mysql_database      = "usv_hmi"
 mysql_user          = "usv_user"
 mysql_password      = "usv_password"
+
+# AWS Cognito Configuration
+

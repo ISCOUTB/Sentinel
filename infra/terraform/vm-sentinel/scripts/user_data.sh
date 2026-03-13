@@ -46,6 +46,23 @@ MYSQL_ROOT_PASSWORD="${mysql_root_password}"
 MYSQL_DATABASE="${mysql_database}"
 MYSQL_USER="${mysql_user}"
 MYSQL_PASSWORD="${mysql_password}"
+
+# AWS Cognito Configuration
+COGNITO_REGION="${cognito_region}"
+COGNITO_USER_POOL_ID="${cognito_user_pool_id}"
+COGNITO_APP_CLIENT_ID="${cognito_app_client_id}"
+
+# AWS API Gateway and IoT Configuration
+AWS_REGION="${aws_region}"
+AWS_IOT_ENDPOINT="${aws_iot_endpoint}"
+API_GATEWAY_WS_ENDPOINT="${api_gateway_ws_endpoint}"
+API_GATEWAY_HTTP_ENDPOINT="${api_gateway_http_endpoint}"
+
+# InfluxDB Configuration
+INFLUXDB_URL="${influxdb_url}"
+INFLUXDB_TOKEN="${influxdb_token}"
+INFLUXDB_ORG="${influxdb_org}"
+INFLUXDB_BUCKET="${influxdb_bucket}"
 EOF
 
 chown ubuntu:ubuntu /home/ubuntu/Sentinel/infra/.env

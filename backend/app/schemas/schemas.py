@@ -3,12 +3,13 @@ from typing import Optional
 from datetime import datetime
 
 class UserBase(BaseModel):
-    username: str = Field(..., min_length=3, max_length=50)
+    cognito_sub: str
     email: EmailStr
+    username: Optional[str] = None
     role: str = Field("user", pattern="^(admin|user)$")
 
 class UserCreate(UserBase):
-    password: str = Field(..., min_length=8)
+    pass
 
 class UserResponse(UserBase):
     id: int
@@ -19,23 +20,33 @@ class UserResponse(UserBase):
     class Config:
         from_attributes = True
 
-class UserLogin(BaseModel):
-    username: str
-    password: str
+class USVBase(BaseModel):
+    name: str = Field(..., min_length=3, max_length=50)
+    description: Optional[str] = None
 
-class Token(BaseModel):
-    access_token: str
-    refresh_token: str
-    token_type: str = "bearer"
-
-class TokenResponse(Token):
+class USVCreate(USVBase):
     pass
 
-class TokenData(BaseModel):
-    username: Optional[str] = None
+class USVResponse(USVBase):
+    id: int
+    is_active: bool
+    created_at: datetime
 
-class RefreshTokenRequest(BaseModel):
-    refresh_token: str
+    class Config:
+        from_attributes = True
+
+class SessionBase(BaseModel):
+    usv_id: int
+    state: str
+
+class SessionResponse(SessionBase):
+    id: int
+    user_id: int
+    started_at: datetime
+    ended_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
 
 class SensorItem(BaseModel):
     name: str
