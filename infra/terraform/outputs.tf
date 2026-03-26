@@ -14,19 +14,17 @@ output "vm_elastic_ip" {
 # ==========================================
 # Outputs TSDB Sentinel (InfluxDB)
 # ==========================================
-output "influxdb_endpoint" {
+output "influxdb_url" {
   description = "Endpoint de la instancia Timestream InfluxDB"
-  value       = module.tsdb-sentinel.influxdb_endpoint
+  value = module.tsdb-sentinel.influxdb_url
 }
 
-output "influxdb_port" {
-  description = "Puerto de la instancia Timestream InfluxDB"
-  value       = module.tsdb-sentinel.influxdb_port
+output "influxdb_username" {
+  value = module.tsdb-sentinel.influxdb_username
 }
 
-output "influxdb_bucket_name" {
-  description = "Nombre del bucket inicial de la instancia Timestream InfluxDB"
-  value       = module.tsdb-sentinel.influxdb_bucket_name
+output "influxdb_buckets" {
+  value = module.tsdb-sentinel.all_bucket_names
 }
 
 output "influxdb_secret_arn" {
@@ -34,10 +32,9 @@ output "influxdb_secret_arn" {
   value       = module.tsdb-sentinel.secret_arn
 }
 
-output "influxdb_password_token" {
-  description = "Token de acceso a InfluxDB (sensible)"
-  value       = module.tsdb-sentinel.influxdb_password_token
-  sensitive   = true
+output "influxdb_password" {
+  value     = module.tsdb-sentinel.influxdb_password
+  sensitive = true
 }
 
 # ==========================================
@@ -68,10 +65,3 @@ output "api_gateway_url" {
   value       = module.gateway-http.api_gateway_url
 }
 
-# ==========================================
-# Outputs Gateway WebSocket
-# ==========================================
-output "websocket_url" {
-  description = "URL del WebSocket"
-  value = module.websocket.ws_url
-}

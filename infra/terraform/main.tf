@@ -60,6 +60,8 @@ module "iot-core" {
 # Módulo Gateway HTTP - API Gateway
 module "gateway-http" {
   source = "./gateway-http"
+   user_pool_id        = var.user_pool_id
+  user_pool_client_id = var.user_pool_client_id
 
   # AWS Credentials
   my_access_key = var.my_access_key

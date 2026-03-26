@@ -130,3 +130,14 @@ variable "iot_policy_name" {
   type        = string
   default     = "usv-iot-policy"
 }
+
+# ==========================================
+# Variables Cognito
+# ==========================================
+variable "user_pool_id" {
+  type = string
+}
+
+variable "user_pool_client_id" {
+  type = string
+}

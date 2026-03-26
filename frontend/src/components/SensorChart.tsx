@@ -10,9 +10,9 @@ import {
 } from "recharts";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { fetchSensorData } from "@/api/sensorData"; // 👈 Importa tu función de datos
+import { fetchSensorData } from "@/api/sensorData"; 
 
-// Tipo de dato para cada punto del gráfico
+
 type SensorPoint = {
   time: string;
   temperatura: number;
@@ -41,7 +41,6 @@ const SensorChart = () => {
 
         setData((prev) => {
           const updated = [...prev, newPoint];
-          // Limita el historial a los últimos 24 puntos
           return updated.slice(-24);
         });
       }
@@ -83,7 +82,7 @@ const SensorChart = () => {
             }}
           />
 
-          {/* 🌡️ Temperatura */}
+          {/* Temperatura */}
           <Line
             type="monotone"
             dataKey="temperatura"
@@ -93,7 +92,7 @@ const SensorChart = () => {
             name="Temperatura (°C)"
           />
 
-          {/* 💧 Humedad */}
+          {/* Humedad */}
           <Line
             type="monotone"
             dataKey="humedad"
@@ -103,7 +102,7 @@ const SensorChart = () => {
             name="Humedad (%)"
           />
 
-          {/* ⚡ Corriente */}
+          {/*Corriente */}
           <Line
             type="monotone"
             dataKey="corriente"
