@@ -23,61 +23,98 @@ import { fetchSensorData } from "@/api/sensorData";
 type SensorPoint = {
   time: string;
   temperatura: number;
-  oxygenoDissuelto: number;
+  oxigenoDissuelto: number;
   ph: number;
   turbidez: number;
 };
 
 type VisibleLines = {
   temperatura: boolean;
-  oxygenoDissuelto: boolean;
+  oxigenoDissuelto: boolean;
   ph: boolean;
   turbidez: boolean;
 };
 
 const SENSOR_LINES = [
   { key: "temperatura" as const, label: "Temperatura (°C)", color: "#f87171" },
-  { key: "oxygenoDissuelto" as const, label: "Oxígeno Disuelto (mg/L)", color: "#60a5fa" },
+  { key: "oxigenoDissuelto" as const, label: "Oxígeno Disuelto (mg/L)", color: "#60a5fa" },
   { key: "ph" as const, label: "pH", color: "#34d399" },
   { key: "turbidez" as const, label: "Turbidez (NTU)", color: "#fbbf24" },
 ];
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 const SensorChart = () => {
   const [data, setData] = useState<SensorPoint[]>([]);
   const [visibleLines, setVisibleLines] = useState<VisibleLines>({
     temperatura: true,
-    oxygenoDissuelto: true,
+    oxigenoDissuelto: true,
     ph: true,
     turbidez: true,
   });
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isNavigating, setIsNavigating] = useState(false);
 
-  const visibleSensors = SENSOR_LINES.filter(line => visibleLines[line.key]);
+  const visibleSensors = SENSOR_LINES.filter((line) => visibleLines[line.key]);
+
+  const buildMockPoint = (prev?: SensorPoint): SensorPoint => {
+    const base = prev ?? {
+      time: "",
+      temperatura: 24,
+      oxigenoDissuelto: 6.8,
+      ph: 7.2,
+      turbidez: 8,
+    };
+
+    return {
+      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+      temperatura: clamp(base.temperatura + (Math.random() - 0.5) * 1.2, 18, 32),
+      oxigenoDissuelto: clamp(base.oxigenoDissuelto + (Math.random() - 0.5) * 0.35, 4.5, 9),
+      ph: clamp(base.ph + (Math.random() - 0.5) * 0.12, 6.5, 8.5),
+      turbidez: clamp(base.turbidez + (Math.random() - 0.5) * 1.8, 1, 25),
+    };
+  };
 
   useEffect(() => {
     const updateData = async () => {
-      const response = await fetchSensorData();
+      try {
+        const response = await fetchSensorData();
 
-      const tempSensor = response.sensors.find((s) => s.name === "Temperatura");
-      const oxygenSensor = response.sensors.find((s) => s.name === "Oxígeno Disuelto");
-      const phSensor = response.sensors.find((s) => s.name === "pH");
-      const turbSensor = response.sensors.find((s) => s.name === "Turbidez");
+        const tempSensor = response.sensors.find((s) => s.name === "Temperatura");
+        const oxygenSensor = response.sensors.find(
+          (s) => s.name === "Oxígeno Disuelto" || s.name === "Oxigeno Disuelto",
+        );
+        const phSensor = response.sensors.find((s) => s.name === "pH" || s.name === "PH");
+        const turbSensor = response.sensors.find((s) => s.name === "Turbidez");
 
-      if (tempSensor && oxygenSensor && phSensor && turbSensor) {
-        const newPoint: SensorPoint = {
-          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          temperatura: parseFloat(tempSensor.value),
-          oxygenoDissuelto: parseFloat(oxygenSensor.value),
-          ph: parseFloat(phSensor.value),
-          turbidez: parseFloat(turbSensor.value),
-        };
+        if (tempSensor && oxygenSensor && phSensor && turbSensor) {
+          const newPoint: SensorPoint = {
+            time: new Date().toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            }),
+            temperatura: parseFloat(tempSensor.value),
+            oxigenoDissuelto: parseFloat(oxygenSensor.value),
+            ph: parseFloat(phSensor.value),
+            turbidez: parseFloat(turbSensor.value),
+          };
 
-        setData((prev) => {
-          const updated = [...prev, newPoint];
-          return updated.slice(-24);
-        });
+          setData((prev) => {
+            const updated = [...prev, newPoint];
+            return updated.slice(-24);
+          });
+          return;
+        }
+      } catch {
+        // Fallback to simulated values when backend data is unavailable.
       }
+
+      setData((prev) => {
+        const nextPoint = buildMockPoint(prev[prev.length - 1]);
+        const updated = [...prev, nextPoint];
+        return updated.slice(-24);
+      });
     };
 
     updateData();
@@ -109,7 +146,7 @@ const SensorChart = () => {
   const handleReset = () => {
     setVisibleLines({
       temperatura: true,
-      oxygenoDissuelto: true,
+      oxigenoDissuelto: true,
       ph: true,
       turbidez: true,
     });
@@ -124,20 +161,20 @@ const SensorChart = () => {
           Datos de sensores en tiempo real
         </h3>
         <div className="flex gap-2 items-center">
-          <div className="flex gap-1 border rounded-lg p-1 bg-accent/50">
+          <div className="flex gap-1 rounded-lg border bg-background p-1">
             <Button
-              variant="ghost"
+              variant="outline"
               size="icon"
-              className="h-8 w-8"
+              className="h-8 w-8 border-0 bg-transparent"
               onClick={() => handleNavigate("left")}
               disabled={visibleSensors.length === 0}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <Button
-              variant="ghost"
+              variant="outline"
               size="icon"
-              className="h-8 w-8"
+              className="h-8 w-8 border-0 bg-transparent"
               onClick={() => handleNavigate("right")}
               disabled={visibleSensors.length === 0}
             >
@@ -197,11 +234,19 @@ const SensorChart = () => {
       </div>
 
       <ResponsiveContainer width="100%" height={250}>
-        <LineChart data={data}>
+        <LineChart
+          data={data}
+          margin={{ top: 8, right: 20, left: 20, bottom: 8 }}
+        >
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-          <XAxis dataKey="time" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-          <YAxis tick={{ fill: "hsl(var(--muted-foreground))" }} />
+          <XAxis
+            dataKey="time"
+            tick={{ fill: "hsl(var(--muted-foreground))" }}
+            padding={{ left: 12, right: 12 }}
+          />
+          <YAxis tick={{ fill: "hsl(var(--muted-foreground))" }} width={45} />
           <Tooltip
+            cursor={false}
             contentStyle={{
               backgroundColor: "hsl(var(--popover))",
               border: "1px solid hsl(var(--border))",
