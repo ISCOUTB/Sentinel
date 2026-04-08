@@ -3,11 +3,10 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.models import User
 from app.config import settings
-import json
 import requests
-from functools import lru_cache
+from jose import jwt, JWTError
 
-# Cognito JWKS cache (token verification keys)
+
 _jwks_cache = None
 _jwks_cache_time = None
 
@@ -16,7 +15,7 @@ def get_jwks():
     global _jwks_cache, _jwks_cache_time
     import time
     
-    # Cache for 1 hour
+
     if _jwks_cache and _jwks_cache_time and (time.time() - _jwks_cache_time) < 3600:
         return _jwks_cache
     
@@ -35,40 +34,56 @@ def get_jwks():
 
 def verify_cognito_token(token: str) -> dict:
     """Verify Cognito JWT token"""
-    import jwt
-    from jwt.exceptions import InvalidTokenError
-    
     try:
-        # Get key ID from token header
         unverified = jwt.get_unverified_header(token)
         kid = unverified.get("kid")
         
         if not kid:
             raise HTTPException(status_code=401, detail="Token missing key id")
-        
-        # Get public key from Cognito
+
         jwks = get_jwks()
-        rsa_key = None
+        public_jwk = None
         
         for key in jwks.get("keys", []):
             if key.get("kid") == kid:
-                rsa_key = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(key))
+                public_jwk = key
                 break
         
-        if not rsa_key:
+        if not public_jwk:
             raise HTTPException(status_code=401, detail="Unable to find key")
         
-        # Verify token
+
         decoded = jwt.decode(
             token,
-            rsa_key,
+            public_jwk,
             algorithms=["RS256"],
-            audience=settings.COGNITO_APP_CLIENT_ID,
-            options={"verify_signature": True}
+            options={
+                "verify_signature": True,
+                "verify_aud": False,
+            },
         )
+
+        expected_issuer = (
+            f"https://cognito-idp.{settings.COGNITO_REGION}.amazonaws.com/"
+            f"{settings.COGNITO_USER_POOL_ID}"
+        )
+        if decoded.get("iss") != expected_issuer:
+            raise HTTPException(status_code=401, detail="Invalid token issuer")
+
+        token_use = decoded.get("token_use")
+        expected_client_id = settings.COGNITO_APP_CLIENT_ID
+
+        if token_use == "id":
+            if decoded.get("aud") != expected_client_id:
+                raise HTTPException(status_code=401, detail="Invalid token audience")
+        elif token_use == "access":
+            if decoded.get("client_id") != expected_client_id:
+                raise HTTPException(status_code=401, detail="Invalid token client")
+        else:
+            raise HTTPException(status_code=401, detail="Invalid token use")
         
         return decoded
-    except InvalidTokenError as e:
+    except JWTError as e:
         raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Token verification failed: {str(e)}")
@@ -77,40 +92,29 @@ def get_current_user(
     request: Request,
     db: Session = Depends(get_db)
 ):
-    """
-    Obtiene el usuario autenticado desde JWT en Authorization header.
-    Valida el token de Cognito directamente (sin depender de API Gateway).
-    También soporta headers de API Gateway como fallback.
-    """
-    
-    # Intenta obtener desde headers de API Gateway primero (si viene del Gateway)
+  
     sub = request.headers.get("x-user-sub")
     email = request.headers.get("x-user-email")
     roles = request.headers.get("x-user-role")
     
-    # Si no hay headers de Gateway, valida JWT de Cognito directamente
     if not sub:
         auth_header = request.headers.get("Authorization")
         if not auth_header or not auth_header.startswith("Bearer "):
             raise HTTPException(status_code=401, detail="No autenticado")
         
-        token = auth_header[7:]  # Remove "Bearer "
+        token = auth_header[7:]  
         decoded = verify_cognito_token(token)
-        
-        # Extraer datos del token
         sub = decoded.get("sub")
         email = decoded.get("email")
-        # Roles de Cognito si existen en el token
+
         roles_str = decoded.get("cognito:groups", "")
         roles = roles_str.split(",") if isinstance(roles_str, str) else roles_str
     
     if not sub:
         raise HTTPException(status_code=401, detail="No autenticado")
     
-    # Buscar usuario en base de datos usando cognito_sub
     user = db.query(User).filter(User.cognito_sub == sub).first()
     
-    # Si no existe en BD pero viene de Cognito, crear entry automático
     if not user and sub:
         user = User(
             username=email.split("@")[0] if email else f"cognito_{sub[:8]}",
