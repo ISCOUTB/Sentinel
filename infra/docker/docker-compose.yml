@@ -28,9 +28,9 @@ services:
       - PROJECT_NAME=${PROJECT_NAME:-USV HMI Backend}
       - API_V1_STR=${API_V1_STR:-/api/v1}
       - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS:-http://localhost:8080,http://localhost:3000,http://localhost:5173}
-      - COGNITO_REGION=${TF_VAR_region_sentinel:-us-east-1}
+- COGNITO_REGION=${TF_VAR_region_sentinel:-us-east-1}
       - COGNITO_USER_POOL_ID=${TF_VAR_user_pool_id}
-      - COGNITO_APP_CLIENT_ID=${TF_VAR_user_pool_client_id}
+      - COGNITO_APP_CLIENT_ID=${TF_VAR_user_pool_client_id}      
     depends_on:
       - db
     command:
