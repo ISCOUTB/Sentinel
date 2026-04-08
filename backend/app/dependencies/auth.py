@@ -114,12 +114,23 @@ def get_current_user(
         raise HTTPException(status_code=401, detail="No autenticado")
     
     user = db.query(User).filter(User.cognito_sub == sub).first()
-    
+
+    # If the user existed before Cognito linkage, associate by email when available.
+    if not user and email:
+        user = db.query(User).filter(User.email == email).first()
+        if user and not user.cognito_sub:
+            user.cognito_sub = sub
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+
     if not user and sub:
+        username_fallback = email.split("@")[0] if email else f"cognito_{sub[:8]}"
         user = User(
-            username=email.split("@")[0] if email else f"cognito_{sub[:8]}",
+            username=username_fallback,
             email=email,
             cognito_sub=sub,
+            role="user",
             is_active=True
         )
         db.add(user)

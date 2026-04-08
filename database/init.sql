@@ -6,9 +6,10 @@ SET @drop_tables = IFNULL(@drop_tables, 'false');
 DROP TABLE IF EXISTS users;
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    cognito_sub VARCHAR(100) UNIQUE,
     username VARCHAR(50) UNIQUE NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    hashed_password VARCHAR(255) NOT NULL,
+    email VARCHAR(100) UNIQUE,
+    hashed_password VARCHAR(255),
     role VARCHAR(20) NOT NULL DEFAULT 'user',
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
