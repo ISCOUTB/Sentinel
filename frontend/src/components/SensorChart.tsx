@@ -8,35 +8,69 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { fetchSensorData } from "@/api/sensorData"; 
-
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { fetchSensorData } from "@/api/sensorData";
 
 type SensorPoint = {
   time: string;
   temperatura: number;
-  humedad: number;
-  corriente: number;
+  oxygenoDissuelto: number;
+  ph: number;
+  turbidez: number;
 };
+
+type VisibleLines = {
+  temperatura: boolean;
+  oxygenoDissuelto: boolean;
+  ph: boolean;
+  turbidez: boolean;
+};
+
+const SENSOR_LINES = [
+  { key: "temperatura" as const, label: "Temperatura (°C)", color: "#f87171" },
+  { key: "oxygenoDissuelto" as const, label: "Oxígeno Disuelto (mg/L)", color: "#60a5fa" },
+  { key: "ph" as const, label: "pH", color: "#34d399" },
+  { key: "turbidez" as const, label: "Turbidez (NTU)", color: "#fbbf24" },
+];
 
 const SensorChart = () => {
   const [data, setData] = useState<SensorPoint[]>([]);
+  const [visibleLines, setVisibleLines] = useState<VisibleLines>({
+    temperatura: true,
+    oxygenoDissuelto: true,
+    ph: true,
+    turbidez: true,
+  });
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  const visibleSensors = SENSOR_LINES.filter(line => visibleLines[line.key]);
 
   useEffect(() => {
     const updateData = async () => {
       const response = await fetchSensorData();
 
       const tempSensor = response.sensors.find((s) => s.name === "Temperatura");
-      const humSensor = response.sensors.find((s) => s.name === "Humedad");
-      const currSensor = response.sensors.find((s) => s.name === "Corriente");
+      const oxygenSensor = response.sensors.find((s) => s.name === "Oxígeno Disuelto");
+      const phSensor = response.sensors.find((s) => s.name === "pH");
+      const turbSensor = response.sensors.find((s) => s.name === "Turbidez");
 
-      if (tempSensor && humSensor && currSensor) {
+      if (tempSensor && oxygenSensor && phSensor && turbSensor) {
         const newPoint: SensorPoint = {
           time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           temperatura: parseFloat(tempSensor.value),
-          humedad: parseFloat(humSensor.value),
-          corriente: parseFloat(currSensor.value),
+          oxygenoDissuelto: parseFloat(oxygenSensor.value),
+          ph: parseFloat(phSensor.value),
+          turbidez: parseFloat(turbSensor.value),
         };
 
         setData((prev) => {
@@ -46,11 +80,42 @@ const SensorChart = () => {
       }
     };
 
-    updateData(); // Ejecuta al iniciar
-    const interval = setInterval(updateData, 5000); // Actualiza cada 5 segundos
+    updateData();
+    const interval = setInterval(updateData, 5000);
 
     return () => clearInterval(interval);
   }, []);
+
+  const handleNavigate = (direction: "left" | "right") => {
+    if (visibleSensors.length === 0) return;
+    
+    setIsNavigating(true);
+    if (direction === "left") {
+      setCurrentIndex((prev) => (prev - 1 + visibleSensors.length) % visibleSensors.length);
+    } else {
+      setCurrentIndex((prev) => (prev + 1) % visibleSensors.length);
+    }
+  };
+
+  const handleToggleSensor = (sensorKey: keyof VisibleLines) => {
+    setVisibleLines((prev) => ({
+      ...prev,
+      [sensorKey]: !prev[sensorKey],
+    }));
+    setCurrentIndex(0);
+    setIsNavigating(false);
+  };
+
+  const handleReset = () => {
+    setVisibleLines({
+      temperatura: true,
+      oxygenoDissuelto: true,
+      ph: true,
+      turbidez: true,
+    });
+    setCurrentIndex(0);
+    setIsNavigating(false);
+  };
 
   return (
     <div className="space-y-4">
@@ -58,12 +123,75 @@ const SensorChart = () => {
         <h3 className="text-sm font-medium text-muted-foreground">
           Datos de sensores en tiempo real
         </h3>
-        <div className="flex gap-1">
-          <Button variant="outline" size="icon" className="h-8 w-8">
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="icon" className="h-8 w-8">
-            <ChevronRight className="h-4 w-4" />
+        <div className="flex gap-2 items-center">
+          <div className="flex gap-1 border rounded-lg p-1 bg-accent/50">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => handleNavigate("left")}
+              disabled={visibleSensors.length === 0}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => handleNavigate("right")}
+              disabled={visibleSensors.length === 0}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-8 w-8"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="1" />
+                  <circle cx="19" cy="12" r="1" />
+                  <circle cx="5" cy="12" r="1" />
+                </svg>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Seleccionar datos ambientales</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {SENSOR_LINES.map((sensor) => (
+                <DropdownMenuCheckboxItem
+                  key={sensor.key}
+                  checked={visibleLines[sensor.key]}
+                  onCheckedChange={() => handleToggleSensor(sensor.key)}
+                >
+                  {sensor.label}
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8"
+            onClick={handleReset}
+            title="Mostrar todos los datos"
+          >
+            <Globe className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -82,35 +210,30 @@ const SensorChart = () => {
             }}
           />
 
-          {/* Temperatura */}
-          <Line
-            type="monotone"
-            dataKey="temperatura"
-            stroke="#f87171"
-            strokeWidth={2}
-            dot={false}
-            name="Temperatura (°C)"
-          />
-
-          {/* Humedad */}
-          <Line
-            type="monotone"
-            dataKey="humedad"
-            stroke="#60a5fa"
-            strokeWidth={2}
-            dot={false}
-            name="Humedad (%)"
-          />
-
-          {/*Corriente */}
-          <Line
-            type="monotone"
-            dataKey="corriente"
-            stroke="#34d399"
-            strokeWidth={2}
-            dot={false}
-            name="Corriente (A)"
-          />
+          {isNavigating && visibleSensors.length > 0 ? (
+            <Line
+              type="monotone"
+              dataKey={visibleSensors[currentIndex].key}
+              stroke={visibleSensors[currentIndex].color}
+              strokeWidth={2}
+              dot={false}
+              name={visibleSensors[currentIndex].label}
+            />
+          ) : (
+            SENSOR_LINES.map((sensor) => (
+              visibleLines[sensor.key] && (
+                <Line
+                  key={sensor.key}
+                  type="monotone"
+                  dataKey={sensor.key}
+                  stroke={sensor.color}
+                  strokeWidth={2}
+                  dot={false}
+                  name={sensor.label}
+                />
+              )
+            ))
+          )}
         </LineChart>
       </ResponsiveContainer>
     </div>
