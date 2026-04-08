@@ -6,7 +6,6 @@ from app.config import settings
 import json
 import requests
 from functools import lru_cache
-from jwt import PyJWT
 
 # Cognito JWKS cache (token verification keys)
 _jwks_cache = None
