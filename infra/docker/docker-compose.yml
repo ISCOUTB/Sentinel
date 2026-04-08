@@ -10,6 +10,9 @@ services:
       - /app/node_modules
     environment:
       - VITE_API_TARGET=http://backend:8000
+      - VITE_COGNITO_USER_POOL_ID=${TF_VAR_user_pool_id}
+      - VITE_COGNITO_USER_POOL_CLIENT_ID=${TF_VAR_user_pool_client_id}
+      - VITE_AWS_REGION=${TF_VAR_region_sentinel:-us-east-1}
     command: npm run dev
   backend:
     container_name: usv-hmi-backend
@@ -19,7 +22,7 @@ services:
       - "8000:8000"
     environment:
       - SECRET_KEY=${SECRET_KEY}
-      - DATABASE_URL=mysql+pymysql://${MYSQL_USER}:${MYSQL_PASSWORD}@db:3306/${MYSQL_DATABASE}
+      - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-usv_user}:${MYSQL_PASSWORD:-usv_password}@db:3306/${MYSQL_DATABASE:-usv_hmi}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-360}
       - REFRESH_TOKEN_EXPIRE_DAYS=${REFRESH_TOKEN_EXPIRE_DAYS:-7}
       - PROJECT_NAME=${PROJECT_NAME:-USV HMI Backend}
@@ -37,10 +40,10 @@ services:
     image: mysql:8.0
     container_name: usv-hmi-db
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-usv_hmi}
+      MYSQL_USER: ${MYSQL_USER:-usv_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-usv_password}
     ports:
       - "3306:3306"
     volumes:

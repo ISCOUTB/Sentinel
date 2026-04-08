@@ -12,6 +12,10 @@ module "vm-sentinel" {
   # Configuración del repositorio
   repo_branch = var.repo_branch
 
+  # Cognito para el frontend
+  user_pool_id        = var.user_pool_id
+  user_pool_client_id = var.user_pool_client_id
+
   # Secret key para el backend
   secret_key = var.secret_key
 

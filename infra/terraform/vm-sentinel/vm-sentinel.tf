@@ -17,6 +17,8 @@ resource "aws_instance" "sentinel" {
 
   user_data = templatefile("${path.module}/scripts/user_data.sh", {
     branch              = var.repo_branch
+    user_pool_id        = var.user_pool_id
+    user_pool_client_id = var.user_pool_client_id
     secret_key          = var.secret_key
     mysql_root_password = var.mysql_root_password
     mysql_user          = var.mysql_user

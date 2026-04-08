@@ -18,6 +18,16 @@ variable "repo_branch" {
   default     = "develop"
 }
 
+variable "user_pool_id" {
+  description = "Cognito User Pool ID para el frontend"
+  default     = ""
+}
+
+variable "user_pool_client_id" {
+  description = "Cognito App Client ID para el frontend"
+  default     = ""
+}
+
 variable "secret_key" {
   description = "Secret key para el backend"
   default     = "your-secret-key-here-change-this-in-production"

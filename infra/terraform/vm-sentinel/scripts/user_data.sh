@@ -46,6 +46,10 @@ MYSQL_ROOT_PASSWORD="${mysql_root_password}"
 MYSQL_DATABASE="${mysql_database}"
 MYSQL_USER="${mysql_user}"
 MYSQL_PASSWORD="${mysql_password}"
+
+# Frontend Cognito
+TF_VAR_user_pool_id="${user_pool_id}"
+TF_VAR_user_pool_client_id="${user_pool_client_id}"
 EOF
 
 chown ubuntu:ubuntu /home/ubuntu/Sentinel/infra/.env
