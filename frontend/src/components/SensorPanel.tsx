@@ -1,20 +1,25 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchSensorData } from "@/api/sensorData";
-import { Droplet, Zap, Thermometer } from "lucide-react";
+import { Activity, Droplet, Thermometer } from "lucide-react";
 import SensorChart from "./SensorChart";
 import { Card } from "@/components/ui/card";
 
 const iconMap: Record<string, any> = {
-  Humedad: Droplet,
-  Corriente: Zap,
   Temperatura: Thermometer,
+  "Oxígeno disuelto": Droplet,
+  "Oxigeno disuelto": Droplet,
+  "Oxígeno Disuelto": Droplet,
+  "Oxigeno Disuelto": Droplet,
+  Turbidez: Activity,
+  pH: Activity,
+  PH: Activity,
 };
 
 const SensorPanel = () => {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["sensorData"],
     queryFn: fetchSensorData,
-    refetchInterval: 5000, // actualiza cada 5 segundos
+    refetchInterval: 5000, 
   });
 
   if (isLoading)

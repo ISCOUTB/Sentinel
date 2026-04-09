@@ -37,12 +37,18 @@ type VisibleLines = {
 
 const SENSOR_LINES = [
   { key: "temperatura" as const, label: "Temperatura (°C)", color: "#f87171" },
-  { key: "oxigenoDissuelto" as const, label: "Oxígeno Disuelto (mg/L)", color: "#60a5fa" },
+  { key: "oxigenoDissuelto" as const, label: "Oxígeno disuelto (mg/L)", color: "#60a5fa" },
   { key: "ph" as const, label: "pH", color: "#34d399" },
   { key: "turbidez" as const, label: "Turbidez (NTU)", color: "#fbbf24" },
 ];
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const normalizeSensorName = (name: string) =>
+  name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
 
 const SensorChart = () => {
   const [data, setData] = useState<SensorPoint[]>([]);
@@ -80,12 +86,14 @@ const SensorChart = () => {
       try {
         const response = await fetchSensorData();
 
-        const tempSensor = response.sensors.find((s) => s.name === "Temperatura");
-        const oxygenSensor = response.sensors.find(
-          (s) => s.name === "Oxígeno Disuelto" || s.name === "Oxigeno Disuelto",
+        const sensorMap = new Map(
+          response.sensors.map((sensor) => [normalizeSensorName(sensor.name), sensor]),
         );
-        const phSensor = response.sensors.find((s) => s.name === "pH" || s.name === "PH");
-        const turbSensor = response.sensors.find((s) => s.name === "Turbidez");
+
+        const tempSensor = sensorMap.get("temperatura");
+        const oxygenSensor = sensorMap.get("oxigeno disuelto");
+        const phSensor = sensorMap.get("ph");
+        const turbSensor = sensorMap.get("turbidez");
 
         if (tempSensor && oxygenSensor && phSensor && turbSensor) {
           const newPoint: SensorPoint = {

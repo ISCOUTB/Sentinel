@@ -1,5 +1,4 @@
 /// <reference types="leaflet" />
-// src/components/MapView.tsx
 import React, { useEffect, useRef, useState, Suspense } from "react";
 import { MapContainer, TileLayer } from "react-leaflet";
 import "leaflet/dist/leaflet.css";

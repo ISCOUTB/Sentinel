@@ -8,7 +8,7 @@ const AlertNotification = () => {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 z-50 animate-fade-in">
+    <div className="absolute bottom-4 left-4 z-50 animate-fade-in pointer-events-auto">
       <div className="bg-warning/10 border-2 border-warning rounded-lg p-4 flex items-start gap-3 min-w-[320px] shadow-lg">
         <div className="flex items-center justify-center w-10 h-10 rounded-full bg-warning">
           <AlertTriangle className="w-5 h-5 text-warning-foreground" />
