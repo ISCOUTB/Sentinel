@@ -39,7 +39,7 @@ device.on("connect", () => {
     if ([2, 3, 6, 7].includes(combinationCode)) {
       device.publish(
         'usv/mission/data',
-        JSON.stringify({ ...tomlData.mision, timestamp })
+        JSON.stringify({ ...tomlData.mission, timestamp })
       );
       console.log('[SEND]: mission enviado <====');
     }

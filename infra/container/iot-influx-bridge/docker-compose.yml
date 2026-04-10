@@ -1,0 +1,39 @@
+services:
+  influxdb:
+    image: influxdb:2.7
+    container_name: sentinel-influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_USERNAME}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_PASSWORD}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_ORG}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_BUCKET}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_INIT_ADMIN_TOKEN}
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+      - influxdb_config:/etc/influxdb2
+    healthcheck:
+      test: ["CMD", "influx", "ping", "--host", "http://localhost:8086"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  iot-influx-bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sentinel-iot-influx-bridge
+    env_file:
+      - .env
+    depends_on:
+      influxdb:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ../../../tests/iot-emulator/certs:/certs:ro
+
+volumes:
+  influxdb_data:
+  influxdb_config:
