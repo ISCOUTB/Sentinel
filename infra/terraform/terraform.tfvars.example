@@ -39,3 +39,9 @@ publicly_accessible = true
 # ==========================================
 thing_name      = "usv_thing"
 iot_policy_name = "usv-iot-policy"
+
+
+# ==========================================
+# Lambda Function Configuration
+# ==========================================
+lambda_function_name = "iot-to-influxdb"

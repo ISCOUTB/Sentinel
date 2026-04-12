@@ -2,20 +2,23 @@ require('dotenv').config();
 const awsIot = require('aws-iot-device-sdk');
 const fs = require('fs');
 const path = require('path');
-const toml = require('@iarna/toml');
 
 console.log('<==== Emulador USV iniciado ====>');
 
-// ===== Cargar TOML =====
-const tomlPath = path.join(__dirname, 'usv_simulation.toml');
-const tomlData = toml.parse(fs.readFileSync(tomlPath, 'utf8'));
-const combinationCode = tomlData.simulation.active_combination_code;
+// ===== Cargar JSON =====
+const jsonPath = path.join(__dirname, 'usv_simulation.json');
+const jsonData = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
 
 // ===== AWS IoT =====
+const keyPath = path.join(__dirname, process.env.AWS_IOT_PRIVATE_KEY_PATH || 'certs/private.pem.key');
+const certPath = path.join(__dirname, process.env.AWS_IOT_CERT_PATH || 'certs/device.pem.crt');
+const caPath = path.join(__dirname, process.env.AWS_IOT_CA_PATH || 'certs/AmazonRootCA1.pem');
+
+
 const device = awsIot.device({
-  keyPath: path.join(__dirname, process.env.AWS_IOT_PRIVATE_KEY_PATH || 'certs/private.pem.key'),
-  certPath: path.join(__dirname, process.env.AWS_IOT_CERT_PATH || 'certs/device.pem.crt'),
-  caPath: path.join(__dirname, process.env.AWS_IOT_CA_PATH || 'certs/AmazonRootCA1.pem'),
+  keyPath,
+  certPath,
+  caPath,
   clientId: process.env.AWS_IOT_CLIENT_ID || 'usv-barquito-emulator',
   host: process.env.AWS_IOT_ENDPOINT,
   keepalive: 30,
@@ -26,31 +29,37 @@ device.on("connect", () => {
   console.log("[CONNECT]: Conectado a AWS IoT Core <====");
 
   setInterval(() => {
-    const timestamp = new Date().toISOString();
+    const timestamp_utc = new Date().toISOString();
 
-    if ([1, 3, 5, 7].includes(combinationCode)) {
-      device.publish(
-        'usv/status/data',
-        JSON.stringify({ ...tomlData.general_usv_status, timestamp })
-      );
-      console.log('[SEND]: general_usv_status enviado <====');
-    }
+    // Enviar USV Status
+    device.publish(
+      'usv/status/data',
+      JSON.stringify({ 
+        ...jsonData.general_usv_status, 
+        timestamp_utc
+      })
+    );
+    console.log('[SEND]: general_usv_status enviado a usv/status/data <====');
 
-    if ([2, 3, 6, 7].includes(combinationCode)) {
-      device.publish(
-        'usv/mission/data',
-        JSON.stringify({ ...tomlData.mision, timestamp })
-      );
-      console.log('[SEND]: mission enviado <====');
-    }
+    // Enviar Mission Data
+    device.publish(
+      'usv/mission/data',
+      JSON.stringify({
+        ...jsonData.mision,
+        timestamp_utc
+      })
+    );
+    console.log('[SEND]: mission enviado a usv/mission/data <====');
 
-    if ([4, 5, 6, 7].includes(combinationCode)) {
-      device.publish(
-        'usv/logs/data',
-        JSON.stringify({ ...tomlData.logs, timestamp })
-      );
-      console.log('[SEND]: logs enviado <====');
-    }
+    // Enviar Logs
+    device.publish(
+      'usv/logs/data',
+      JSON.stringify({ 
+        ...jsonData.logs, 
+        timestamp_utc
+      })
+    );
+    console.log('[SEND]: logs enviado a usv/logs/data <====');
   }, 5000);
 });
 

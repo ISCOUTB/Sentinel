@@ -49,9 +49,9 @@ module "iot-core" {
   source = "./iot"
 
   # AWS Credentials
-  my_access_key    = var.my_access_key
-  my_secret_key    = var.my_secret_key
-  region_sentinel  = var.region_sentinel
+  my_access_key   = var.my_access_key
+  my_secret_key   = var.my_secret_key
+  region_sentinel = var.region_sentinel
 
   thing_name      = var.thing_name
   iot_policy_name = var.iot_policy_name
@@ -67,4 +67,26 @@ module "gateway-http" {
   aws_region    = var.aws_region
 
   backend_ip = module.vm-sentinel.elastic_ip
+}
+# Módulo Lambda IoT -> InfluxDB
+module "lambda_influxdb_iotcore" {
+  source = "./lambda_influxdb_iotcore"
+
+  # AWS Credentials
+  aws_region    = var.aws_region
+  my_access_key = var.my_access_key
+  my_secret_key = var.my_secret_key
+
+  # Lambda Configuration
+  lambda_name = var.lambda_function_name
+
+  # InfluxDB Connection Details (from module output & root vars)
+  influxdb_url      = module.tsdb-sentinel.influxdb_url
+  influxdb_bucket   = var.bucket_name
+  influxdb_org      = var.organization_name
+  influxdb_username = var.db_username
+  influxdb_password = var.db_password
+
+  # IoT Rules
+  iot_rules = var.iot_rules
 }
