@@ -1,6 +1,6 @@
 resource "aws_key_pair" "sentinel_ec2_key_pair" {
   key_name   = "mykey"
-  public_key = file("mykey.pub")
+  public_key = file("${path.module}/../mykey.pub")
 }
 
 resource "aws_instance" "sentinel" {

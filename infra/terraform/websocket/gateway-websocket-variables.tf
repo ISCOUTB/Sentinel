@@ -18,18 +18,10 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
-variable "user_pool_id" {
-  description = "Cognito User Pool ID"
+# WebSocket Gateway Configuration
+variable "project_name" {
+  description = "Nombre del proyecto"
   type        = string
+  default     = "sentinel"
 }
 
-variable "user_pool_client_id" {
-  description = "Cognito App Client ID"
-  type        = string
-}
-
-# Gateway Configuration
-variable "backend_ip" {
-  description = "IP pública del backend EC2"
-  type        = string
-}

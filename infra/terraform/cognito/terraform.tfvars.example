@@ -1,0 +1,20 @@
+#Plantilla de variables tfvars para pruebas individuales en terraform
+my_access_key             = "TU_ACCESS_KEY"
+my_secret_key             = "TU_SECRET_KEY"
+aws_region                = "us-east-1"
+project_name              = "sentinel"
+
+access_token_validity     = 60
+id_token_validity         = 60
+refresh_token_validity    = 30
+
+access_token_validity_unit  = "minutes"
+id_token_validity_unit      = "minutes"
+refresh_token_validity_unit = "days"
+
+# Password Policy
+password_minimum_length    = 8
+password_require_lowercase = true
+password_require_uppercase = true
+password_require_numbers   = true
+password_require_symbols   = false

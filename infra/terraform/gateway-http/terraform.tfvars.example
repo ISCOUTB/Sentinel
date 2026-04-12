@@ -1,1 +1,9 @@
-backend_ip = "ip" ## Reemplaza con la IP pública de tu instancia EC2 manualmente.
+aws_region      = "us-east-1"
+
+my_access_key = "TU_ACCESS_KEY_AQUI"
+my_secret_key = "TU_SECRET_KEY_AQUI"
+
+backend_ip = "ip_backend" # Reemplaza con la IP pública de tu instancia EC2 manualmente.
+
+user_pool_id         = "user_pool_id" # Reemplaza con el User Pool ID de Cognito obtenido de los outputs de Terraform.
+user_pool_client_id  = "user_pool_client_id" # Reemplaza con el App Client ID de Cognito obtenido de los outputs de Terraform.
