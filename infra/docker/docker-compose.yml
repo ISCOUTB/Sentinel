@@ -4,13 +4,10 @@ services:
     build:
       context: ../../frontend
     ports:
-      - "8080:8080"
-    volumes:
-      - ../../frontend:/app
-      - /app/node_modules
+      - "8080:80"
     environment:
       - VITE_API_TARGET=http://backend:8000
-    command: npm run dev
+
   backend:
     container_name: usv-hmi-backend
     build:

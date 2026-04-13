@@ -26,9 +26,13 @@ dist-ssr
 #Proyect files
 .env
 __pycache__/
+hardware
+certs
+certificates
 
 #Terraform files
 terraform.tfstate.backup
+*.backup
 .terraform.lock.hcl
 mykey.pub
 mykey
