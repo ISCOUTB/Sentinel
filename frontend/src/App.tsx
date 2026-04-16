@@ -8,6 +8,7 @@ import NotFound from "./pages/NotFound";
 import Register from "./pages/Register";
 import ConfirmEmail from "./pages/ConfirmEmail";
 import { useAuth } from "./contexts/AuthContext";
+import { IoTProvider } from "./contexts/IoTContext";
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -28,7 +29,16 @@ const App = () => (
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/confirm-email" element={<ConfirmEmail />} />
-        <Route path="/hmi" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+        <Route
+          path="/hmi"
+          element={
+            <ProtectedRoute>
+              <IoTProvider>
+                <Index />
+              </IoTProvider>
+            </ProtectedRoute>
+          }
+        />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

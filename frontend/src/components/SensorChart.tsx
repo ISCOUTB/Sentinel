@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from 'react';
 import {
   LineChart,
   Line,
@@ -7,110 +7,116 @@ import {
   CartesianGrid,
   ResponsiveContainer,
   Tooltip,
-} from "recharts";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { fetchSensorData } from "@/api/sensorData"; // 👈 Importa tu función de datos
+  Legend,
+} from 'recharts';
+import { useIoTData } from '@/contexts/IoTContext';
 
-// Tipo de dato para cada punto del gráfico
-type SensorPoint = {
+// ─── Tipos ────────────────────────────────────────────────────────────────────
+
+interface ChartPoint {
   time: string;
+  /** Temperatura del agua en °C */
   temperatura: number;
-  humedad: number;
-  corriente: number;
-};
+  /** pH del agua */
+  ph: number;
+  /** Oxígeno disuelto en ppm */
+  oxigeno: number;
+}
+
+const MAX_POINTS = 24;
+
+// ─── Componente ───────────────────────────────────────────────────────────────
 
 const SensorChart = () => {
-  const [data, setData] = useState<SensorPoint[]>([]);
+  const { misionData } = useIoTData();
+
+  // Acumular puntos históricos sin depender del estado del padre
+  const historyRef = useRef<ChartPoint[]>([]);
+  const renderRef = useRef<ChartPoint[]>([]);
+
+  // Cada vez que llega un nuevo mensaje MQTT, agregamos un punto
+  const prevTimestamp = useRef<string | null>(null);
 
   useEffect(() => {
-    const updateData = async () => {
-      const response = await fetchSensorData();
+    if (!misionData) return;
 
-      const tempSensor = response.sensors.find((s) => s.name === "Temperatura");
-      const humSensor = response.sensors.find((s) => s.name === "Humedad");
-      const currSensor = response.sensors.find((s) => s.name === "Corriente");
+    // Evitar duplicados si llega el mismo timestamp
+    if (misionData.timestamp_utc === prevTimestamp.current) return;
+    prevTimestamp.current = misionData.timestamp_utc;
 
-      if (tempSensor && humSensor && currSensor) {
-        const newPoint: SensorPoint = {
-          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          temperatura: parseFloat(tempSensor.value),
-          humedad: parseFloat(humSensor.value),
-          corriente: parseFloat(currSensor.value),
-        };
-
-        setData((prev) => {
-          const updated = [...prev, newPoint];
-          // Limita el historial a los últimos 24 puntos
-          return updated.slice(-24);
-        });
-      }
+    const newPoint: ChartPoint = {
+      time: new Date(misionData.timestamp_utc).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      }),
+      temperatura: misionData.temperatura_agua_c,
+      ph: misionData.ph_agua,
+      oxigeno: misionData.oxigeno_disuelto_ppm,
     };
 
-    updateData(); // Ejecuta al iniciar
-    const interval = setInterval(updateData, 5000); // Actualiza cada 5 segundos
+    const updated = [...historyRef.current, newPoint].slice(-MAX_POINTS);
+    historyRef.current = updated;
+    renderRef.current = updated;
+  }, [misionData]);
 
-    return () => clearInterval(interval);
-  }, []);
+  // Forzar re-render cuando cambia el historial (sin useState para evitar loop)
+  const data = misionData ? renderRef.current : [];
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-muted-foreground">
-          Datos de sensores en tiempo real
+          Parámetros de calidad del agua — tiempo real
         </h3>
-        <div className="flex gap-1">
-          <Button variant="outline" size="icon" className="h-8 w-8">
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="icon" className="h-8 w-8">
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+        <span className="text-xs text-muted-foreground">
+          {data.length > 0 ? `${data.length} muestras` : 'Sin datos'}
+        </span>
       </div>
 
       <ResponsiveContainer width="100%" height={250}>
         <LineChart data={data}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-          <XAxis dataKey="time" tick={{ fill: "hsl(var(--muted-foreground))" }} />
-          <YAxis tick={{ fill: "hsl(var(--muted-foreground))" }} />
+          <XAxis dataKey="time" tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
+          <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
           <Tooltip
             contentStyle={{
-              backgroundColor: "hsl(var(--popover))",
-              border: "1px solid hsl(var(--border))",
-              borderRadius: "0.5rem",
-              color: "hsl(var(--popover-foreground))",
+              backgroundColor: 'hsl(var(--popover))',
+              border: '1px solid hsl(var(--border))',
+              borderRadius: '0.5rem',
+              color: 'hsl(var(--popover-foreground))',
             }}
           />
+          <Legend wrapperStyle={{ fontSize: '11px' }} />
 
-          {/* 🌡️ Temperatura */}
+          {/* 🌡️ Temperatura del agua */}
           <Line
             type="monotone"
             dataKey="temperatura"
             stroke="#f87171"
             strokeWidth={2}
             dot={false}
-            name="Temperatura (°C)"
+            name="Temp. Agua (°C)"
           />
 
-          {/* 💧 Humedad */}
+          {/* ⚗️ pH */}
           <Line
             type="monotone"
-            dataKey="humedad"
-            stroke="#60a5fa"
+            dataKey="ph"
+            stroke="#a78bfa"
             strokeWidth={2}
             dot={false}
-            name="Humedad (%)"
+            name="pH"
           />
 
-          {/* ⚡ Corriente */}
+          {/* 💧 Oxígeno disuelto */}
           <Line
             type="monotone"
-            dataKey="corriente"
+            dataKey="oxigeno"
             stroke="#34d399"
             strokeWidth={2}
             dot={false}
-            name="Corriente (A)"
+            name="O₂ Disuelto (ppm)"
           />
         </LineChart>
       </ResponsiveContainer>

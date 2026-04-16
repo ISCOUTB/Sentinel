@@ -20,8 +20,10 @@ resource "aws_iot_policy" "usv_policy" {
         Effect = "Allow"
         Action = ["iot:Connect"]
         Resource = [
-          "arn:aws:iot:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:client/${var.thing_name}"
+          "arn:aws:iot:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:client/${var.thing_name}",
+          "arn:aws:iot:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:client/sentinel_hmi_*"
         ]
+        
       },
       {
         Effect = "Allow"

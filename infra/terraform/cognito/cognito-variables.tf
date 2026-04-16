@@ -24,6 +24,13 @@ variable "project_name" {
   default     = "sentinel"
 }
 
+# Nombre del Thing en IoT Core — debe ser idéntico al var.thing_name del módulo iot
+# Necesario para que la política IAM del Identity Pool cubra los tópicos correctos
+variable "thing_name" {
+  description = "Nombre del Thing de IoT Core (debe coincidir con el módulo iot)"
+  type        = string
+}
+
 # Password Policy
 variable "password_minimum_length" {
   description = "Longitud mínima de la contraseña"
