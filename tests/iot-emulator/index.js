@@ -25,6 +25,14 @@ const device = awsIot.device({
   protocol: 'mqtts'
 });
 
+// ===== Configuración de Tópicos =====
+const THING_NAME = process.env.AWS_IOT_THING_NAME || 'USV-001';
+const TOPICS = {
+  STATUS: `${THING_NAME}/general_usv_status`,
+  MISSION: `${THING_NAME}/mision`,
+  LOGS: `${THING_NAME}/logs`,
+};
+
 device.on("connect", () => {
   console.log("[CONNECT]: Conectado a AWS IoT Core <====");
 
@@ -33,33 +41,33 @@ device.on("connect", () => {
 
     // Enviar USV Status
     device.publish(
-      'usv/status/data',
+      TOPICS.STATUS,
       JSON.stringify({ 
         ...jsonData.general_usv_status, 
         timestamp_utc
       })
     );
-    console.log('[SEND]: general_usv_status enviado a usv/status/data <====');
+    console.log(`[SEND]: status enviado a ${TOPICS.STATUS} <====`);
 
     // Enviar Mission Data
     device.publish(
-      'usv/mission/data',
+      TOPICS.MISSION,
       JSON.stringify({
         ...jsonData.mision,
         timestamp_utc
       })
     );
-    console.log('[SEND]: mission enviado a usv/mission/data <====');
+    console.log(`[SEND]: mission enviado a ${TOPICS.MISSION} <====`);
 
     // Enviar Logs
     device.publish(
-      'usv/logs/data',
+      TOPICS.LOGS,
       JSON.stringify({ 
         ...jsonData.logs, 
         timestamp_utc
       })
     );
-    console.log('[SEND]: logs enviado a usv/logs/data <====');
+    console.log(`[SEND]: logs enviado a ${TOPICS.LOGS} <====`);
   }, 5000);
 });
 
