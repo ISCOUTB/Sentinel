@@ -84,7 +84,7 @@ export function useIoTConnection({ idToken, thingName }: UseIoTConnectionParams)
       try {
         const text = new TextDecoder('utf-8').decode(payload);
         const data = JSON.parse(text);
-
+        
         if (topic.endsWith('/general_usv_status')) {
           dispatch({ type: 'SET_USV_STATUS', payload: data as USVStatus });
         } else if (topic.endsWith('/mision')) {
@@ -93,7 +93,7 @@ export function useIoTConnection({ idToken, thingName }: UseIoTConnectionParams)
           dispatch({ type: 'ADD_LOG', payload: data as LogEntry });
         }
       } catch (err) {
-        console.error('[IoT] Error parsing MQTT message on', topic, err);
+        console.error('[IoT] Message parse error:', err);
       }
     },
     []
@@ -101,7 +101,9 @@ export function useIoTConnection({ idToken, thingName }: UseIoTConnectionParams)
 
   useEffect(() => {
     // No conectar si no hay token
-    if (!idToken || !thingName) return;
+    if (!idToken || !thingName) {
+      return;
+    }
 
     let cancelled = false;
 
@@ -110,8 +112,7 @@ export function useIoTConnection({ idToken, thingName }: UseIoTConnectionParams)
       try {
         const conn = await createIoTConnection(idToken);
         if (cancelled) {
-          // Si el componente se desmontó antes de conectar, desconectar limpio
-          conn.disconnect().catch(console.error);
+          conn.disconnect().catch(() => {});
           return;
         }
 
@@ -127,12 +128,11 @@ export function useIoTConnection({ idToken, thingName }: UseIoTConnectionParams)
 
         for (const topic of topics) {
           await conn.subscribe(topic, mqtt.QoS.AtLeastOnce, handleMessage);
-          console.log(`[IoT] Suscrito a: ${topic}`);
         }
       } catch (err) {
         if (!cancelled) {
           const message = err instanceof Error ? err.message : String(err);
-          console.error('[IoT] Error de conexión:', message);
+          console.error('[IoT] Connection failed:', message);
           dispatch({ type: 'SET_ERROR', payload: message });
         }
       }
@@ -144,7 +144,7 @@ export function useIoTConnection({ idToken, thingName }: UseIoTConnectionParams)
     return () => {
       cancelled = true;
       if (connectionRef.current) {
-        connectionRef.current.disconnect().catch(console.error);
+        connectionRef.current.disconnect().catch(() => {});
         connectionRef.current = null;
         dispatch({ type: 'SET_STATUS', payload: 'disconnected' });
       }

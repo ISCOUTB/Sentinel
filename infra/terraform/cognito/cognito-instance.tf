@@ -158,7 +158,10 @@ resource "aws_iam_role_policy" "iot_policy" {
           "iot:Subscribe",
           "iot:Receive"
         ]
-        Resource = "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topicfilter/${var.thing_name}/*"
+        Resource = [
+          "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topicfilter/${var.thing_name}/*",
+          "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/${var.thing_name}/*"
+        ]
       },
       {
         # El frontend llama a AttachPolicy para adjuntar la política IoT

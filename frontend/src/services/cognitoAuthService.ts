@@ -179,6 +179,35 @@ class CognitoAuthService {
   }
 
   /**
+   * Obtiene la sesión completa con tokens para el usuario actual
+   */
+  async getSessionData(): Promise<{
+    accessToken: string;
+    idToken: string;
+    refreshToken: string;
+    username: string;
+  } | null> {
+    const userPool = this.getUserPool();
+    const user = userPool.getCurrentUser();
+    if (!user) return null;
+
+    return new Promise((resolve) => {
+      user.getSession((err, session) => {
+        if (err || !session || !session.isValid()) {
+          resolve(null);
+        } else {
+          resolve({
+            accessToken: session.getAccessToken().getJwtToken(),
+            idToken: session.getIdToken().getJwtToken(),
+            refreshToken: session.getRefreshToken().getToken(),
+            username: user.getUsername(),
+          });
+        }
+      });
+    });
+  }
+
+  /**
    * Obtiene los atributos del usuario actual
    */
   async getUserAttributes(username: string): Promise<Record<string, string>> {

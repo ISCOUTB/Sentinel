@@ -76,7 +76,6 @@ const SensorChart = () => {
     // Evitar duplicados por timestamp
     if (misionData.timestamp_utc === prevTimestamp.current) return;
     prevTimestamp.current = misionData.timestamp_utc;
-
     const newPoint: ChartPoint = {
       time: new Date(misionData.timestamp_utc).toLocaleTimeString([], {
         hour: '2-digit',
@@ -86,11 +85,12 @@ const SensorChart = () => {
       temperatura: misionData.temperatura_agua_c,
       ph: misionData.ph_agua,
       oxigeno: misionData.oxigeno_disuelto_ppm,
-      turbidez: misionData.turbidez_ntu || 0, // Fallback si no viene en el payload
+      turbidez: misionData.turbidez_ntu || 0,
     };
 
     historyRef.current = [...historyRef.current, newPoint].slice(-MAX_POINTS);
     forceUpdate({}); // Sincronizamos con el ciclo de vida de React
+
   }, [misionData]);
 
   const data = historyRef.current;

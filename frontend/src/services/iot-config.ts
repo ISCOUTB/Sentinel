@@ -18,13 +18,16 @@
 
 import { mqtt, iot } from 'aws-iot-device-sdk-v2';
 import { fromCognitoIdentityPool } from '@aws-sdk/credential-providers';
+import { IoTClient, AttachPolicyCommand } from "@aws-sdk/client-iot";
+import { CognitoIdentityClient, GetIdCommand } from "@aws-sdk/client-cognito-identity";
 
 // ─── Configuración leída de variables de entorno ──────────────────────────────
 
-const IOT_ENDPOINT = import.meta.env.VITE_IOT_ENDPOINT as string;
+const IOT_ENDPOINT = (import.meta.env.VITE_IOT_ENDPOINT as string).replace(/^https?:\/\//, '');
 const REGION = (import.meta.env.VITE_AWS_REGION as string) ?? 'us-east-1';
 const IDENTITY_POOL_ID = import.meta.env.VITE_COGNITO_IDENTITY_POOL_ID as string;
 const USER_POOL_ID = import.meta.env.VITE_COGNITO_USER_POOL_ID as string;
+const IOT_POLICY_NAME = import.meta.env.VITE_IOT_POLICY_NAME || "sentinel-hmi-policy";
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────
 
@@ -35,36 +38,60 @@ export type MqttConnection = mqtt.MqttClientConnection;
 /**
  * Crea y conecta un cliente MQTT a AWS IoT Core usando credenciales
  * temporales de Cognito Identity Pool.
- *
- * @param idToken - Token ID de Cognito obtenido tras la autenticación del usuario.
- * @returns Conexión MQTT lista para publicar/suscribir.
- *
- * @example
- * const conn = await createIoTConnection(idToken);
- * await conn.subscribe('USV-001/general_usv_status', mqtt.QoS.AtLeastOnce, onMessage);
  */
 export async function createIoTConnection(idToken: string): Promise<MqttConnection> {
   if (!IOT_ENDPOINT || !IDENTITY_POOL_ID || !USER_POOL_ID) {
     throw new Error(
-      '[IoT] Variables de entorno incompletas. Verifica VITE_IOT_ENDPOINT, ' +
-        'VITE_COGNITO_IDENTITY_POOL_ID y VITE_COGNITO_USER_POOL_ID en tu archivo .env'
+      '[IoT] Variables de entorno incompletas.'
     );
   }
 
-  // 1. Proveedor de credenciales AWS temporales a partir del idToken de Cognito
   const cognitoLoginKey = `cognito-idp.${REGION}.amazonaws.com/${USER_POOL_ID}`;
 
+  // 1. Obtener IdentityId explícitamente
+  const cognitoClient = new CognitoIdentityClient({ region: REGION });
+  const getIdResponse = await cognitoClient.send(new GetIdCommand({
+    IdentityPoolId: IDENTITY_POOL_ID,
+    Logins: { [cognitoLoginKey]: idToken }
+  }));
+  const identityId = getIdResponse.IdentityId;
+
+  if (!identityId) {
+    throw new Error('[IoT] Auth focus failed.');
+  }
+
+  // 2. Proveedor de credenciales
   const credentialsProvider = fromCognitoIdentityPool({
     identityPoolId: IDENTITY_POOL_ID,
     logins: { [cognitoLoginKey]: idToken },
     clientConfig: { region: REGION },
   });
 
-  // 2. Resolver credenciales (necesario para firmar la URL del WebSocket)
   const credentials = await credentialsProvider();
 
-  // 3. Construir la configuración de conexión WebSocket con SigV4
-  //    El client_id `sentinel_hmi_*` debe coincidir con la política IoT de tu TF.
+  // 3. Vincular política de IoT (Requerido para WebSockets + SigV4)
+  try {
+    const iotClient = new IoTClient({
+      region: REGION,
+      credentials: {
+        accessKeyId: credentials.accessKeyId,
+        secretAccessKey: credentials.secretAccessKey,
+        sessionToken: credentials.sessionToken || ""
+      }
+    });
+
+    await iotClient.send(new AttachPolicyCommand({
+      policyName: IOT_POLICY_NAME,
+      target: identityId
+    }));
+  } catch (error: any) {
+    if (error.name !== 'ResourceAlreadyExistsException') {
+      // Solo reportar errores que no sean "ya existe"
+      console.error('[IoT] Security Policy Error:', error.message);
+    }
+  }
+
+  // 4. Construir la configuración de conexión WebSocket con SigV4
   const clientId = `sentinel_hmi_${Math.random().toString(36).substring(2, 9)}`;
 
   const config = iot.AwsIotMqttConnectionConfigBuilder.new_websocket_builder()
@@ -80,12 +107,18 @@ export async function createIoTConnection(idToken: string): Promise<MqttConnecti
     .with_keep_alive_seconds(30)
     .build();
 
-  // 4. Crear cliente y conectar
+  // 5. Crear cliente y conectar
   const client = new mqtt.MqttClient();
   const connection = client.new_connection(config);
 
-  await connection.connect();
-  console.log(`[IoT] Conectado a ${IOT_ENDPOINT} con clientId=${clientId}`);
+  connection.on('error', (error) => {
+    console.error('[IoT] Connection Error:', error);
+  });
+
+  await Promise.race([
+    connection.connect(),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT_CONEXION_IOT_CORE')), 10000))
+  ]);
 
   return connection;
 }

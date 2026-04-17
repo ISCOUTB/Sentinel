@@ -2,42 +2,66 @@ import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
-import { NodeGlobalsPolyfillPlugin } from "@esbuild-plugins/node-globals-polyfill";
+import { nodePolyfills } from "vite-plugin-node-polyfills";
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, process.cwd(), '');
-  const apiTarget = process.env.VITE_API_TARGET || env.VITE_API_TARGET || 'http://localhost:8000';
+  const env = loadEnv(mode, process.cwd(), "");
+  const apiTarget =
+    process.env.VITE_API_TARGET ||
+    env.VITE_API_TARGET ||
+    "http://localhost:8000";
 
   return {
     server: {
       host: "::",
       port: 8080,
       proxy: {
-        '/api/v1': {
+        "/api/v1": {
           target: apiTarget,
           changeOrigin: true,
         },
       },
     },
     plugins: [
-      react(), 
+      react(),
       mode === "development" && componentTagger(),
-      NodeGlobalsPolyfillPlugin({
-        buffer: true,
-        process: true,
+      nodePolyfills({
+        include: ["buffer", "process", "util", "stream"],
+        globals: {
+          Buffer: true,
+          global: true,
+          process: true,
+        },
       }),
     ].filter(Boolean),
+    define: {
+      // Polyfill de global para compatibilidad con aws-sdk
+      global: "globalThis",
+    },
+    build: {
+      commonjsOptions: {
+        transformMixedEsModules: true,
+      },
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            vendor: ["react", "react-dom", "react-router-dom"],
+            aws: ["aws-iot-device-sdk-v2", "@aws-sdk/client-iot", "@aws-sdk/client-cognito-identity"],
+          },
+        },
+      },
+    },
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
+        buffer: "buffer",
+        process: "process",
+        stream: "stream-browserify",
+        util: "util",
       },
     },
     optimizeDeps: {
-      esbuildOptions: {
-        define: {
-          global: 'globalThis',
-        },
-      },
+      include: ["buffer", "process", "stream-browserify", "util", "aws-iot-device-sdk-v2"],
     },
   };
 });
