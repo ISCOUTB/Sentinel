@@ -16,9 +16,10 @@ def get_sensor_data(current_user = Depends(get_current_user)):
     """
     return SensorDataResponse(
         sensors=[
-            SensorItem(name='Humedad', value=f"{70 + random.random() * 30:.1f}", unit='%'),
-            SensorItem(name='Corriente', value=f"{1 + random.random() * 3:.2f}", unit='A'),
             SensorItem(name='Temperatura', value=f"{22 + random.random() * 6:.1f}", unit='°C'),
+            SensorItem(name='Oxígeno disuelto', value=f"{5.5 + random.random() * 2.5:.2f}", unit='mg/L'),
+            SensorItem(name='Turbidez', value=f"{2 + random.random() * 18:.1f}", unit='NTU'),
+            SensorItem(name='pH', value=f"{6.8 + random.random() * 1.1:.2f}", unit=''),
         ],
         metrics=[
             MetricItem(label='Parameter', value=f"{900 + random.random() * 50:.1f}", unit='hPa'),

@@ -7,13 +7,27 @@ import {
 import { cognitoConfig } from '@/config/cognito';
 
 class CognitoAuthService {
-  private userPool: CognitoUserPool;
+  private userPool: CognitoUserPool | null = null;
 
-  constructor() {
+  constructor() {}
+
+  private getUserPool(): CognitoUserPool {
+    if (this.userPool) {
+      return this.userPool;
+    }
+
+    if (!cognitoConfig.userPoolId || !cognitoConfig.userPoolWebClientId) {
+      throw new Error(
+        'Cognito no está configurado. Verifica VITE_COGNITO_USER_POOL_ID y VITE_COGNITO_USER_POOL_CLIENT_ID.'
+      );
+    }
+
     this.userPool = new CognitoUserPool({
       UserPoolId: cognitoConfig.userPoolId,
       ClientId: cognitoConfig.userPoolWebClientId,
     });
+
+    return this.userPool;
   }
 
   /**
@@ -21,6 +35,7 @@ class CognitoAuthService {
    */
   async register(username: string, email: string, password: string): Promise<void> {
     return new Promise((resolve, reject) => {
+      const userPool = this.getUserPool();
       const attributeList = [
         new CognitoUserAttribute({
           Name: 'email',
@@ -28,7 +43,7 @@ class CognitoAuthService {
         }),
       ];
 
-      this.userPool.signUp(username, password, attributeList, [], (err, result) => {
+      userPool.signUp(username, password, attributeList, [], (err, result) => {
         if (err) {
           reject(new Error(err.message || 'Error durante el registro'));
         } else {
@@ -46,7 +61,7 @@ class CognitoAuthService {
     return new Promise((resolve, reject) => {
       const cognitoUser = new CognitoUser({
         Username: username,
-        Pool: this.userPool,
+        Pool: this.getUserPool(),
       });
 
       cognitoUser.confirmRegistration(confirmationCode, true, (err, result) => {
@@ -66,7 +81,7 @@ class CognitoAuthService {
     return new Promise((resolve, reject) => {
       const cognitoUser = new CognitoUser({
         Username: username,
-        Pool: this.userPool,
+        Pool: this.getUserPool(),
       });
 
       cognitoUser.resendConfirmationCode((err, result) => {
@@ -90,7 +105,7 @@ class CognitoAuthService {
     return new Promise((resolve, reject) => {
       const cognitoUser = new CognitoUser({
         Username: username,
-        Pool: this.userPool,
+        Pool: this.getUserPool(),
       });
 
       const authenticationDetails = new AuthenticationDetails({
@@ -124,7 +139,7 @@ class CognitoAuthService {
     return new Promise((resolve, reject) => {
       const cognitoUser = new CognitoUser({
         Username: username,
-        Pool: this.userPool,
+        Pool: this.getUserPool(),
       });
 
       const RefreshToken = {
@@ -146,7 +161,8 @@ class CognitoAuthService {
    * Obtiene el usuario activo
    */
   async getCurrentUser(): Promise<CognitoUser | null> {
-    const user = this.userPool.getCurrentUser();
+    const userPool = this.getUserPool();
+    const user = userPool.getCurrentUser();
     if (!user) {
       return null;
     }
@@ -168,7 +184,7 @@ class CognitoAuthService {
   async getUserAttributes(username: string): Promise<Record<string, string>> {
     const cognitoUser = new CognitoUser({
       Username: username,
-      Pool: this.userPool,
+      Pool: this.getUserPool(),
     });
 
     return new Promise((resolve, reject) => {
@@ -194,7 +210,7 @@ class CognitoAuthService {
   async logout(username: string): Promise<void> {
     const cognitoUser = new CognitoUser({
       Username: username,
-      Pool: this.userPool,
+      Pool: this.getUserPool(),
     });
 
     return new Promise((resolve) => {
@@ -210,7 +226,7 @@ class CognitoAuthService {
   async getAccessToken(username: string): Promise<string> {
     const cognitoUser = new CognitoUser({
       Username: username,
-      Pool: this.userPool,
+      Pool: this.getUserPool(),
     });
 
     return new Promise((resolve, reject) => {

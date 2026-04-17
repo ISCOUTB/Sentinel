@@ -132,6 +132,15 @@ variable "iot_policy_name" {
 }
 
 # ==========================================
+# Variables Cognito
+# ==========================================
+variable "user_pool_id" {
+  type = string
+}
+
+variable "user_pool_client_id" {
+  type = string
+}
 # Variables Lambda IoT -> InfluxDB
 # ==========================================
 variable "lambda_function_name" {
