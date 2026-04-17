@@ -65,3 +65,15 @@ output "api_gateway_url" {
   value       = module.gateway-http.api_gateway_url
 }
 
+# ==========================================
+# Outputs Lambda IoT->InfluxDB
+# ==========================================
+output "lambda_arn" {
+  description = "ARN de la función Lambda IoT->InfluxDB"
+  value       = module.lambda_influxdb_iotcore.lambda_arn
+}
+
+output "iot_rules" {
+  description = "Reglas IoT creadas"
+  value       = module.lambda_influxdb_iotcore.iot_rule_names
+}

@@ -59,126 +59,210 @@ def get_influx_cookie(url, username, password):
         raise e
 
 def write_to_influxdb(url, org, bucket, username, password, point_line):
-    """Write data to InfluxDB using Cookie Authentication"""
-    global cached_cookie
-    
-    # 1. Ensure we have a cookie
-    if not cached_cookie:
-        cached_cookie = get_influx_cookie(url, username, password)
-    
-    # 2. Prepare URL
+    """
+    Authenticate via /api/v2/signin using username/password
+    then write using returned session cookie
+    """
+
     if url.endswith('/'):
         url = url[:-1]
-    
-    write_endpoint = f"{url}/api/v2/write"
-    
-    params = {
-        'org': org,
-        'bucket': bucket,
-        'precision': 'ns'
+
+    signin_url = f"{url}/api/v2/signin"
+    write_url = f"{url}/api/v2/write?org={org}&bucket={bucket}&precision=ns"
+
+    # Basic Auth header
+    credentials = f"{username}:{password}".encode("utf-8")
+    b64_credentials = base64.b64encode(credentials).decode("utf-8")
+
+    signin_headers = {
+        "Authorization": f"Basic {b64_credentials}"
     }
-    
-    # 3. Headers (Use Cookie)
-    headers = {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Accept': 'application/json'
-    }
-    
-    if cached_cookie:
-        headers['Cookie'] = cached_cookie
-    
-    encoded_args = "&".join([f"{k}={v}" for k, v in params.items()])
-    full_url = f"{write_endpoint}?{encoded_args}"
-    
+
     try:
-        # Attempt Write
-        response = http.request(
-            'POST',
-            full_url,
-            body=point_line.encode('utf-8'),
-            headers=headers
+        # Step 1: Sign in
+        signin_response = http.request(
+            "POST",
+            signin_url,
+            headers=signin_headers
         )
-        
-        # If 401, maybe cookie expired? Retry once.
-        if response.status == 401:
-            print("Write 401 Unauthorized. Retrying with fresh cookie...")
-            cached_cookie = get_influx_cookie(url, username, password)
-            if cached_cookie:
-                headers['Cookie'] = cached_cookie
-            
-            response = http.request(
-                'POST',
-                full_url,
-                body=point_line.encode('utf-8'),
-                headers=headers
-            )
-        
-        if response.status >= 300:
-            print(f"FAILED to write. Status: {response.status}. Body: {response.data.decode('utf-8')}")
-            raise Exception(f"InfluxDB Write Failed: {response.status} {response.data}")
-            
-        print(f"Successfully wrote to {bucket}. Status: {response.status}")
-        return True
-        
-    except Exception as e:
-        print(f"HTTP Request failed: {str(e)}")
-        raise e
 
-def lambda_handler(event, context):
-    # Load Config
-    influx_url = os.environ.get('INFLUXDB_URL')
-    influx_org = os.environ.get('INFLUXDB_ORG')
-    username = os.environ.get('INFLUXDB_USERNAME')
-    password = os.environ.get('INFLUXDB_PASSWORD')
-    
-    # Determine bucket
-    bucket = event.get('influx_bucket') or os.environ.get('INFLUXDB_BUCKET')
-    
-    if not all([influx_url, influx_org, username, password, bucket]):
-        print("Missing config")
-        return {"status": "error", "reason": "missing_config"}
+        if signin_response.status not in [200, 204]:
+            print(f"Signin failed: {signin_response.status} {signin_response.data}")
+            raise Exception("InfluxDB Signin Failed")
 
-    print(f"Processing event for bucket: {bucket}")
+        cookie = signin_response.headers.get("set-cookie")
 
-    try:
-        # Convert JSON event to Line Protocol
-        # Format: measurement,tag1=val1 field1=val1,field2=val2 timestamp
-        
-        measurement = "iot_telemetry"
-        
-        # Extract tags
-        device_id = event.get('device_id') or event.get('clientId') or event.get('thingname') or 'unknown_device'
-        tags_str = f"device_id={device_id}"
-        
-        # Extract fields
-        fields = []
-        for key, value in event.items():
-            if key not in ['device_id', 'clientId', 'thingname', 'timestamp', 'influx_bucket']:
-                if isinstance(value, (int, float)):
-                    fields.append(f"{key}={value}")
-                elif isinstance(value, str):
-                    fields.append(f'{key}="{value}"')
-                elif isinstance(value, bool):
-                    fields.append(f"{key}={str(value)}")
+        if not cookie:
+            raise Exception("No session cookie returned from InfluxDB")
 
-        if not fields:
-            print("No fields to write")
-            return {"status": "skipped"}
-            
-        fields_str = ",".join(fields)
-        
-        # Line Protocol String
-        # If timestamp is missing, InfluxDB adds it server-side.
-        line_protocol = f"{measurement},{tags_str} {fields_str}"
-        
-        # Send
-        write_to_influxdb(influx_url, influx_org, bucket, username, password, line_protocol)
-        
-        return {
-            'statusCode': 200,
-            'body': json.dumps('Data written to InfluxDB')
+        print("Authenticated successfully")
+
+        # Step 2: Write data
+        write_headers = {
+            "Content-Type": "text/plain; charset=utf-8",
+            "Cookie": cookie
         }
 
+        write_response = http.request(
+            "POST",
+            write_url,
+            body=point_line.encode("utf-8"),
+            headers=write_headers
+        )
+
+        if write_response.status >= 300:
+            print(f"Write failed: {write_response.status} {write_response.data}")
+            raise Exception("InfluxDB Write Failed")
+
+        print(f"Write successful. Status: {write_response.status}")
+        return True
+
     except Exception as e:
-        print(f"Handler Error: {str(e)}")
+        print(f"Error writing to InfluxDB: {str(e)}")
         raise e
+
+def flatten_dict(d, parent_key='', sep='_'):
+    """Recursively flatten nested dictionaries"""
+    items = []
+    for k, v in d.items():
+        new_key = f"{parent_key}{sep}{k}" if parent_key else k
+        if isinstance(v, dict):
+            items.extend(flatten_dict(v, new_key, sep=sep).items())
+        elif isinstance(v, list):
+            # Skip lists for now (will handle separately if needed)
+            continue
+        else:
+            items.append((new_key, v))
+    return dict(items)
+
+def parse_timestamp(timestamp_str):
+    """Convert ISO 8601 timestamp to nanoseconds since epoch"""
+    from datetime import datetime, timezone
+
+    if not timestamp_str:
+        # Si no viene timestamp, usar tiempo actual
+        return int(datetime.now(timezone.utc).timestamp() * 1_000_000_000)
+
+    try:
+        if timestamp_str.endswith('Z'):
+            dt = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+        else:
+            dt = datetime.fromisoformat(timestamp_str)
+        return int(dt.timestamp() * 1_000_000_000)
+    except Exception as e:
+        print(f"Failed to parse timestamp '{timestamp_str}': {e}")
+        return int(datetime.now(timezone.utc).timestamp() * 1_000_000_000)
+
+def build_line_protocol(measurement, tags, fields, timestamp=None):
+    """Build InfluxDB Line Protocol string"""
+    if not fields:
+        return None
+    
+    tags_str = ",".join([f"{k}={v}" for k, v in tags.items()])
+    fields_list = []
+    
+    for k, v in fields.items():
+        if isinstance(v, (int, float)):
+            fields_list.append(f"{k}={v}")
+        elif isinstance(v, bool):
+            fields_list.append(f"{k}={str(v).lower()}")
+        elif isinstance(v, str):
+            # Escape quotes in string values
+            escaped = v.replace('"', '\\"')
+            fields_list.append(f'{k}="{escaped}"')
+    
+    fields_str = ",".join(fields_list)
+    
+    if timestamp:
+        return f"{measurement},{tags_str} {fields_str} {timestamp}"
+    else:
+        return f"{measurement},{tags_str} {fields_str}"
+
+def lambda_handler(event, context):
+    
+    influx_url = os.environ.get('INFLUXDB_URL')
+    influx_org = os.environ.get('INFLUXDB_ORG')
+    username   = os.environ.get('INFLUXDB_USERNAME')
+    password   = os.environ.get('INFLUXDB_PASSWORD')
+    
+    if not all([influx_url, influx_org, username, password]):
+        return {
+            "status": "error",
+            "reason": "missing_influx_config"
+        }
+
+    bucket = event.get("influx_bucket")
+    
+    
+    if not bucket:
+        return {"status": "error", "reason": "missing_bucket"}
+
+    timestamp = parse_timestamp(event.get("timestamp_utc"))
+
+    if bucket == "general_status":
+
+        tags = {
+            "usv_id": event.get("usv_id"),
+            "conexion": event.get("conexion"),
+            "actividad": event.get("actividad")
+        }
+
+        fields = {
+            k: v for k, v in event.items()
+            if k not in ["usv_id", "conexion", "actividad", "timestamp_utc", "influx_bucket"]
+            and isinstance(v, (int, float))
+        }
+
+        measurement = "general_usv_status"
+
+    elif bucket == "mission":
+        
+        tags = {
+            "mission_id": event.get("mission_id"),
+            "usv_id": event.get("usv_id"),
+            "tipo_mision": event.get("tipo_mision"),
+            "estado_mision": event.get("estado_mision")
+        }
+
+        fields = {
+            k: v for k, v in event.items()
+            if k not in [
+                "mission_id","usv_id","tipo_mision",
+                "estado_mision","timestamp_utc","influx_bucket"
+            ]
+            and isinstance(v,(int,float))
+        }
+
+        measurement = "mission_data"
+
+    elif bucket == "logs":
+        
+        tags = {
+            "log_id": event.get("log_id"),
+            "usv_id": event.get("usv_id"),
+            "mission_id": event.get("mission_id")
+        }
+
+        fields = {
+            "codigo": event.get("codigo", 0)
+        }
+
+        measurement = "logs"
+
+    else:
+        return {"status": "skipped", "reason": "unknown_bucket"}
+
+
+    line = build_line_protocol(measurement, tags, fields, timestamp)
+
+    if not line:
+        return {"status": "skipped", "reason": "no_fields"}
+
+    write_to_influxdb(
+        influx_url,
+        influx_org,
+        bucket,
+        username,
+        password,
+        line
+    )  

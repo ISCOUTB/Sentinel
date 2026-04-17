@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from 'react';
 import {
   LineChart,
   Line,
@@ -7,8 +7,9 @@ import {
   CartesianGrid,
   ResponsiveContainer,
   Tooltip,
+  Legend,
 } from "recharts";
-import { ChevronLeft, ChevronRight, Globe } from "lucide-react";
+import { ChevronLeft, ChevronRight, Globe, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,122 +19,85 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { fetchSensorData } from "@/api/sensorData";
+import { useIoTData } from '@/contexts/IoTContext';
 
-type SensorPoint = {
+// ─── Tipos e Interfaces ──────────────────────────────────────────────────────
+
+interface ChartPoint {
   time: string;
   temperatura: number;
-  oxigenoDissuelto: number;
   ph: number;
+  oxigeno: number;
   turbidez: number;
-};
+}
 
 type VisibleLines = {
   temperatura: boolean;
-  oxigenoDissuelto: boolean;
   ph: boolean;
+  oxigeno: boolean;
   turbidez: boolean;
 };
 
+const MAX_POINTS = 24;
+
 const SENSOR_LINES = [
-  { key: "temperatura" as const, label: "Temperatura (°C)", color: "#f87171" },
-  { key: "oxigenoDissuelto" as const, label: "Oxígeno disuelto (mg/L)", color: "#60a5fa" },
-  { key: "ph" as const, label: "pH", color: "#34d399" },
+  { key: "temperatura" as const, label: "Temp. Agua (°C)", color: "#f87171" },
+  { key: "oxigeno" as const, label: "O₂ Disuelto (ppm)", color: "#34d399" },
+  { key: "ph" as const, label: "pH", color: "#a78bfa" },
   { key: "turbidez" as const, label: "Turbidez (NTU)", color: "#fbbf24" },
 ];
 
-const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
-const normalizeSensorName = (name: string) =>
-  name
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim();
+// ─── Componente Principal ─────────────────────────────────────────────────────
 
 const SensorChart = () => {
-  const [data, setData] = useState<SensorPoint[]>([]);
+  const { misionData } = useIoTData();
+  
+  // Estados para la funcionalidad de navegación y visibilidad
   const [visibleLines, setVisibleLines] = useState<VisibleLines>({
     temperatura: true,
-    oxigenoDissuelto: true,
+    oxigeno: true,
     ph: true,
     turbidez: true,
   });
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isNavigating, setIsNavigating] = useState(false);
 
+  // Referencias para manejar el historial de datos en tiempo real (MQTT)
+  const historyRef = useRef<ChartPoint[]>([]);
+  const prevTimestamp = useRef<string | null>(null);
+  const [, forceUpdate] = useState({}); // Para disparar re-render cuando llega MQTT
+
   const visibleSensors = SENSOR_LINES.filter((line) => visibleLines[line.key]);
 
-  const buildMockPoint = (prev?: SensorPoint): SensorPoint => {
-    const base = prev ?? {
-      time: "",
-      temperatura: 24,
-      oxigenoDissuelto: 6.8,
-      ph: 7.2,
-      turbidez: 8,
-    };
-
-    return {
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
-      temperatura: clamp(base.temperatura + (Math.random() - 0.5) * 1.2, 18, 32),
-      oxigenoDissuelto: clamp(base.oxigenoDissuelto + (Math.random() - 0.5) * 0.35, 4.5, 9),
-      ph: clamp(base.ph + (Math.random() - 0.5) * 0.12, 6.5, 8.5),
-      turbidez: clamp(base.turbidez + (Math.random() - 0.5) * 1.8, 1, 25),
-    };
-  };
-
+  // Efecto para procesar datos del Hook IoT
   useEffect(() => {
-    const updateData = async () => {
-      try {
-        const response = await fetchSensorData();
+    if (!misionData) return;
 
-        const sensorMap = new Map(
-          response.sensors.map((sensor) => [normalizeSensorName(sensor.name), sensor]),
-        );
+    // Evitar duplicados por timestamp
+    if (misionData.timestamp_utc === prevTimestamp.current) return;
+    prevTimestamp.current = misionData.timestamp_utc;
 
-        const tempSensor = sensorMap.get("temperatura");
-        const oxygenSensor = sensorMap.get("oxigeno disuelto");
-        const phSensor = sensorMap.get("ph");
-        const turbSensor = sensorMap.get("turbidez");
-
-        if (tempSensor && oxygenSensor && phSensor && turbSensor) {
-          const newPoint: SensorPoint = {
-            time: new Date().toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-            }),
-            temperatura: parseFloat(tempSensor.value),
-            oxigenoDissuelto: parseFloat(oxygenSensor.value),
-            ph: parseFloat(phSensor.value),
-            turbidez: parseFloat(turbSensor.value),
-          };
-
-          setData((prev) => {
-            const updated = [...prev, newPoint];
-            return updated.slice(-24);
-          });
-          return;
-        }
-      } catch {
-        // Fallback to simulated values when backend data is unavailable.
-      }
-
-      setData((prev) => {
-        const nextPoint = buildMockPoint(prev[prev.length - 1]);
-        const updated = [...prev, nextPoint];
-        return updated.slice(-24);
-      });
+    const newPoint: ChartPoint = {
+      time: new Date(misionData.timestamp_utc).toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      }),
+      temperatura: misionData.temperatura_agua_c,
+      ph: misionData.ph_agua,
+      oxigeno: misionData.oxigeno_disuelto_ppm,
+      turbidez: misionData.turbidez_ntu || 0, // Fallback si no viene en el payload
     };
 
-    updateData();
-    const interval = setInterval(updateData, 5000);
+    historyRef.current = [...historyRef.current, newPoint].slice(-MAX_POINTS);
+    forceUpdate({}); // Sincronizamos con el ciclo de vida de React
+  }, [misionData]);
 
-    return () => clearInterval(interval);
-  }, []);
+  const data = historyRef.current;
 
+  // Manejadores de Interfaz
   const handleNavigate = (direction: "left" | "right") => {
     if (visibleSensors.length === 0) return;
-    
     setIsNavigating(true);
     if (direction === "left") {
       setCurrentIndex((prev) => (prev - 1 + visibleSensors.length) % visibleSensors.length);
@@ -143,21 +107,13 @@ const SensorChart = () => {
   };
 
   const handleToggleSensor = (sensorKey: keyof VisibleLines) => {
-    setVisibleLines((prev) => ({
-      ...prev,
-      [sensorKey]: !prev[sensorKey],
-    }));
+    setVisibleLines((prev) => ({ ...prev, [sensorKey]: !prev[sensorKey] }));
     setCurrentIndex(0);
     setIsNavigating(false);
   };
 
   const handleReset = () => {
-    setVisibleLines({
-      temperatura: true,
-      oxigenoDissuelto: true,
-      ph: true,
-      turbidez: true,
-    });
+    setVisibleLines({ temperatura: true, ph: true, oxigeno: true, turbidez: true });
     setCurrentIndex(0);
     setIsNavigating(false);
   };
@@ -165,24 +121,31 @@ const SensorChart = () => {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-muted-foreground">
-          Datos de sensores en tiempo real
-        </h3>
+        <div className="space-y-1">
+          <h3 className="text-sm font-medium text-muted-foreground">
+            Parámetros de calidad del agua — tiempo real
+          </h3>
+          <p className="text-xs text-muted-foreground/70">
+            {data.length > 0 ? `${data.length} muestras recibidas` : 'Esperando datos de sensores...'}
+          </p>
+        </div>
+
         <div className="flex gap-2 items-center">
+          {/* Navegación entre sensores */}
           <div className="flex gap-1 rounded-lg border bg-background p-1">
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
-              className="h-8 w-8 border-0 bg-transparent"
+              className="h-8 w-8"
               onClick={() => handleNavigate("left")}
               disabled={visibleSensors.length === 0}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
-              className="h-8 w-8 border-0 bg-transparent"
+              className="h-8 w-8"
               onClick={() => handleNavigate("right")}
               disabled={visibleSensors.length === 0}
             >
@@ -190,32 +153,15 @@ const SensorChart = () => {
             </Button>
           </div>
 
+          {/* Menú de selección */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="h-8 w-8"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="12" cy="12" r="1" />
-                  <circle cx="19" cy="12" r="1" />
-                  <circle cx="5" cy="12" r="1" />
-                </svg>
+              <Button variant="outline" size="icon" className="h-8 w-8">
+                <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Seleccionar datos ambientales</DropdownMenuLabel>
+              <DropdownMenuLabel>Filtros de variables</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {SENSOR_LINES.map((sensor) => (
                 <DropdownMenuCheckboxItem
@@ -234,7 +180,7 @@ const SensorChart = () => {
             size="icon"
             className="h-8 w-8"
             onClick={handleReset}
-            title="Mostrar todos los datos"
+            title="Ver todas las dimensiones"
           >
             <Globe className="h-4 w-4" />
           </Button>
@@ -242,37 +188,38 @@ const SensorChart = () => {
       </div>
 
       <ResponsiveContainer width="100%" height={250}>
-        <LineChart
-          data={data}
-          margin={{ top: 8, right: 20, left: 20, bottom: 8 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-          <XAxis
-            dataKey="time"
-            tick={{ fill: "hsl(var(--muted-foreground))" }}
-            padding={{ left: 12, right: 12 }}
+        <LineChart data={data} margin={{ top: 8, right: 20, left: 20, bottom: 8 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+          <XAxis 
+            dataKey="time" 
+            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} 
+            minTickGap={30}
           />
-          <YAxis tick={{ fill: "hsl(var(--muted-foreground))" }} width={45} />
+          <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} width={30} />
           <Tooltip
-            cursor={false}
+            cursor={{ stroke: 'hsl(var(--muted))', strokeWidth: 1 }}
             contentStyle={{
-              backgroundColor: "hsl(var(--popover))",
-              border: "1px solid hsl(var(--border))",
-              borderRadius: "0.5rem",
-              color: "hsl(var(--popover-foreground))",
+              backgroundColor: 'hsl(var(--popover))',
+              border: '1px solid hsl(var(--border))',
+              borderRadius: '0.5rem',
+              fontSize: '12px'
             }}
           />
+          <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
 
           {isNavigating && visibleSensors.length > 0 ? (
+            // Modo Enfoque (Navegando con flechas)
             <Line
               type="monotone"
               dataKey={visibleSensors[currentIndex].key}
               stroke={visibleSensors[currentIndex].color}
-              strokeWidth={2}
+              strokeWidth={2.5}
               dot={false}
               name={visibleSensors[currentIndex].label}
+              animationDuration={300}
             />
           ) : (
+            // Modo Multidimensional (Filtros del Dropdown)
             SENSOR_LINES.map((sensor) => (
               visibleLines[sensor.key] && (
                 <Line
@@ -283,6 +230,7 @@ const SensorChart = () => {
                   strokeWidth={2}
                   dot={false}
                   name={sensor.label}
+                  animationDuration={300}
                 />
               )
             ))
