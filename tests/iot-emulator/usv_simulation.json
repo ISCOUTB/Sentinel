@@ -5,19 +5,19 @@
     "conexion": "ONLINE",
     "actividad": "EN_MISION",
 
-    "bateria_porcentaje": 85,
-    "corriente_motor_1_a": 15.5,
-    "corriente_motor_2_a": 16.2,
-    "voltaje_celda_1_v": 3.85,
-    "voltaje_celda_2_v": 3.86,
-    "voltaje_celda_3_v": 3.84,
+    "bateria_porcentaje": 82.7,
+    "corriente_motor_1_a": 14.9,
+    "corriente_motor_2_a": 15.2,
+    "voltaje_celda_1_v": 3.94,
+    "voltaje_celda_2_v": 3.95,
+    "voltaje_celda_3_v": 3.93,
 
-    "roll_grados": 5.2,
-    "pitch_grados": -1.1,
-    "yaw_grados": 185.0,
+    "roll_grados": 4.9,
+    "pitch_grados": -0.8,
+    "yaw_grados": 186.4,
 
-    "latitud": 10.4005,
-    "longitud": -75.5002,
+    "latitud": 10.4012,
+    "longitud": -75.4997,
     
     "timestamp_utc": "2025-10-07T17:55:00.123Z"
   },
@@ -29,14 +29,14 @@
     "estado_mision": "EN_PROGRESO",
 
     "punto_id": "PUNTO-001",
-    "latitud": 10.4005,
-    "longitud": -75.5002,
+    "latitud": 10.4012,
+    "longitud": -75.4997,
     "profundidad_m": 5,
 
-    "temperatura_agua_c": 25.4,
-    "ph_agua": 7.21,
-    "turbidez_ntu": 15.8,
-    "oxigeno_disuelto_ppm": 8.5,
+    "temperatura_agua_c": 25.6,
+    "ph_agua": 7.24,
+    "turbidez_ntu": 16.1,
+    "oxigeno_disuelto_ppm": 8.3,
 
     "timestamp_utc": "2025-10-07T17:55:00.123Z"
   },
@@ -46,8 +46,8 @@
     "usv_id": "USV-001",
     "mission_id": "MISION-20251007-001",
     "nivel": "INFO",
-    "mensaje": "Inicio de mision de muestreo",
-    "codigo": 101,
+    "mensaje": "Lectura estable: Temp 25.6 C, pH 7.24, Turbidez 16.1 NTU, O2 8.3 ppm. Mision en progreso.",
+    "codigo": 110,
 
     "timestamp_utc": "2025-10-07T17:54:55Z"
   }

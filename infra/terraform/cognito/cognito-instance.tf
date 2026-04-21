@@ -85,3 +85,100 @@ resource "aws_cognito_user_group" "user_group" {
   user_pool_id = aws_cognito_user_pool.sentinel_pool.id
   description  = "Usuarios normales del sistema"
 }
+
+# Obtener el Account ID actual de AWS
+data "aws_caller_identity" "current" {}
+
+# 1. Crear el Identity Pool
+resource "aws_cognito_identity_pool" "sentinel_identity_pool" {
+  identity_pool_name               = "${var.project_name}-identity-pool"
+  allow_unauthenticated_identities = false # Solo usuarios logueados
+
+  cognito_identity_providers {
+    client_id               = aws_cognito_user_pool_client.sentinel_client.id
+    provider_name           = aws_cognito_user_pool.sentinel_pool.endpoint
+    server_side_token_check = false
+  }
+}
+
+# 2. Roles de IAM para los usuarios del Identity Pool
+resource "aws_iam_role" "authenticated_role" {
+  name = "${var.project_name}-cognito-auth-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Principal = { Federated = "cognito-identity.amazonaws.com" }
+        Action = "sts:AssumeRoleWithWebIdentity"
+        Condition = {
+          "StringEquals": { "cognito-identity.amazonaws.com:aud": aws_cognito_identity_pool.sentinel_identity_pool.id },
+          "ForAnyValue:StringLike": { "cognito-identity.amazonaws.com:amr": "authenticated" }
+        }
+      }
+    ]
+  })
+}
+
+# 3. Política IAM que permite al rol autenticado de Cognito usar IoT Core
+#
+# BUG CORREGIDO: Los tópicos ahora usan var.thing_name (p. ej. "USV-001")
+# para que coincidan exactamente con los tópicos que suscribe el frontend:
+#   {thingName}/general_usv_status
+#   {thingName}/mision
+#   {thingName}/logs
+#
+# Antes usaban "${var.project_name}/hmi/*" que NO cubre esos tópicos.
+resource "aws_iam_role_policy" "iot_policy" {
+  name = "${var.project_name}-iot-policy"
+  role = aws_iam_role.authenticated_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        # Conectar con client_id que comience por "{project_name}_hmi_"
+        # Debe coincidir con el clientId generado en iot-config.ts
+        Effect   = "Allow"
+        Action   = "iot:Connect"
+        Resource = "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:client/${var.project_name}_hmi_*"
+      },
+      {
+        # Publicar en cualquier sub-tópico del USV (p. ej. USV-001/control)
+        Effect   = "Allow"
+        Action   = "iot:Publish"
+        Resource = "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/${var.thing_name}/*"
+      },
+      {
+        # Suscribirse y recibir de los tópicos del USV
+        # Cubre: {thing_name}/general_usv_status, /mision, /logs
+        Effect = "Allow"
+        Action = [
+          "iot:Subscribe",
+          "iot:Receive"
+        ]
+        Resource = [
+          "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topicfilter/${var.thing_name}/*",
+          "arn:aws:iot:${var.aws_region}:${data.aws_caller_identity.current.account_id}:topic/${var.thing_name}/*"
+        ]
+      },
+      {
+        # El frontend llama a AttachPolicy para adjuntar la política IoT
+        # al principal de Cognito Identity (requerido para WebSocket + SigV4)
+        Effect   = "Allow"
+        Action   = "iot:AttachPolicy"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# 4. Vincular los roles al Identity Pool
+resource "aws_cognito_identity_pool_roles_attachment" "main" {
+  identity_pool_id = aws_cognito_identity_pool.sentinel_identity_pool.id
+
+  roles = {
+    authenticated = aws_iam_role.authenticated_role.arn
+  }
+}

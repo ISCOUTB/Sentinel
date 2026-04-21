@@ -14,8 +14,8 @@ class Settings(BaseSettings):
     
     # AWS Cognito Configuration
     COGNITO_REGION: str = "us-east-1"
-    COGNITO_USER_POOL_ID: str = "us-east-1_T9W1Uy04m"
-    COGNITO_APP_CLIENT_ID: str = "6520h9fk6lrq13puaa66qmtovq"
+    COGNITO_USER_POOL_ID: str = "us-east-1_2ZOyS9sDI"
+    COGNITO_APP_CLIENT_ID: str = "7k22tsf93huoqkcjlp6oivvjbl"
 
     class Config:
         env_file = ".env"

@@ -51,7 +51,7 @@ const Register = () => {
 
     try {
       // En Cognito, el username es el email (configurado en cognito-instance.tf)
-      console.log('Registrando usuario:', { username: email, email, password });
+
 
       // Registrar usuario en Cognito (username = email)
       await register(email, email, password);

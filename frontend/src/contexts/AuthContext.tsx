@@ -46,13 +46,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const initializeAuth = async () => {
       try {
         if (useCognito) {
-          // Cognito: intentar recuperar sesión existente
-          const currentUser = await cognitoAuthService.getCurrentUser();
-          if (currentUser) {
-            const sessionUsername = currentUser.getUsername();
+          // Cognito: intentar recuperar sesión completa
+          const sessionData = await cognitoAuthService.getSessionData();
+          if (sessionData) {
             setState((prev) => ({
               ...prev,
-              username: sessionUsername,
+              username: sessionData.username,
+              accessToken: sessionData.accessToken,
+              idToken: sessionData.idToken,
+              refreshToken: sessionData.refreshToken,
               isAuthenticated: true,
               useCognito: true,
             }));
