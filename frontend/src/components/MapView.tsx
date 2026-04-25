@@ -1,7 +1,7 @@
 /// <reference types="leaflet" />
 // src/components/MapView.tsx
 import React, { useEffect, useRef, useState, Suspense } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, GeoJSON } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -9,14 +9,8 @@ import { Canvas, useFrame } from '@react-three/fiber';
 import { PerspectiveCamera, OrbitControls, useGLTF, Text } from '@react-three/drei';
 import * as THREE from 'three';
 
-import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
-import { point } from '@turf/helpers';
-
 import { useIoTData } from '@/contexts/IoTContext';
 import MissionRoute, { MissionPoint } from './MissionRoute';
-
-// ─── GeoJSON de Agua ──────────────────────────────────────────────────────────
-import waterGeoJson from '@/assets/water.json';
 
 // ─── Fix icono de Leaflet en Vite ─────────────────────────────────────────────
 import markerIconUrl from 'leaflet/dist/images/marker-icon.png';
@@ -107,6 +101,59 @@ function BoatGLBOriented({ yaw, roll, pitch }: { yaw: number; roll: number; pitc
   );
 }
 
+// ─── Función para validar el color del píxel del mapa ────────────────────────
+function checkWaterColor(lat: number, lng: number, zoom: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    // 1. Matemáticas para convertir lat/lng a coordenadas de Tile de OSM
+    const x = (lng + 180) / 360 * Math.pow(2, zoom);
+    const y = (1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom);
+    
+    const tileX = Math.floor(x);
+    const tileY = Math.floor(y);
+    
+    // 2. Píxel exacto dentro del tile de 256x256
+    const pixelX = Math.floor((x - tileX) * 256);
+    const pixelY = Math.floor((y - tileY) * 256);
+
+    // 3. Cargar la imagen del Tile de OSM (usando un subdominio genérico 'a')
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.src = `https://a.tile.openstreetmap.org/${zoom}/${tileX}/${tileY}.png`;
+
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 256;
+      canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(false);
+        return;
+      }
+      ctx.drawImage(img, 0, 0);
+      
+      // 4. Obtener el color del píxel clickeado
+      const pixel = ctx.getImageData(pixelX, pixelY, 1, 1).data;
+      const r = pixel[0];
+      const g = pixel[1];
+      const b = pixel[2];
+
+      // 5. Validar si el color corresponde a los tonos de agua de OSM
+      // El agua en OSM típicamente es R:170, G:211, B:223 (varía un poco según la capa)
+      // Ajuste de tolerancias:
+      const isWater = r >= 150 && r <= 190 && 
+                      g >= 190 && g <= 230 && 
+                      b >= 200 && b <= 245;
+
+      resolve(isWater);
+    };
+
+    img.onerror = () => {
+      console.error("No se pudo cargar el tile para la validación de color.");
+      resolve(false); // Falla segura, no permite poner el punto
+    };
+  });
+}
+
 // ─── Componente para manejar clicks en el mapa ───────────────────────────────
 function MapClickHandler({ 
   isSelectingPoints, 
@@ -115,27 +162,18 @@ function MapClickHandler({
   isSelectingPoints: boolean; 
   onAddPoint?: (lat: number, lng: number) => void;
 }) {
-  useMapEvents({
-    click(e) {
+  const map = useMapEvents({
+    async click(e) {
       if (isSelectingPoints && onAddPoint) {
-        // Turf uses [longitude, latitude]
-        const clickedPoint = point([e.latlng.lng, e.latlng.lat]);
-        let isWater = false;
-
-        // Check if the point falls inside any polygon in the water GeoJSON
-        const features = (waterGeoJson as any).features;
-        for (const feature of features) {
-          if (booleanPointInPolygon(clickedPoint, feature)) {
-            isWater = true;
-            break;
-          }
-        }
+        const zoom = map.getZoom();
+        
+        // Ejecutamos la validación visual de color
+        const isWater = await checkWaterColor(e.latlng.lat, e.latlng.lng, zoom);
 
         if (isWater) {
           onAddPoint(e.latlng.lat, e.latlng.lng);
         } else {
-          // Utilizar un toast o un alert temporal
-          alert("Punto inválido: Solo se permite agregar puntos en el agua.");
+          alert("Punto inválido: Solo se permite agregar puntos en el agua (validado por color).");
         }
       }
     },
@@ -259,18 +297,6 @@ export default function MapView({
         >
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
           
-          {/* Capa Visual del Agua */}
-          <GeoJSON 
-            data={waterGeoJson as any} 
-            style={{ 
-              fillColor: '#3b82f6', 
-              color: '#1d4ed8', 
-              weight: 1, 
-              fillOpacity: 0.15,
-              interactive: false // So it doesn't block map clicks
-            }} 
-          />
-
           <MapClickHandler isSelectingPoints={isSelectingPoints} onAddPoint={onAddPoint} />
 
           {/* Marcador de posición real del USV */}
