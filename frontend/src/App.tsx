@@ -23,7 +23,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 const App = () => (
   <TooltipProvider>
     <Toaster />
-    <Sonner />
+    <Sonner position="bottom-right" />
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Login />} />

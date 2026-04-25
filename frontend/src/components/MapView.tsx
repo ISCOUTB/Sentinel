@@ -1,4 +1,4 @@
-/// <reference types="leaflet" />
+import "leaflet";
 // src/components/MapView.tsx
 import React, { useEffect, useRef, useState, Suspense } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
@@ -11,6 +11,7 @@ import * as THREE from 'three';
 
 import { useIoTData } from '@/contexts/IoTContext';
 import MissionRoute, { MissionPoint } from './MissionRoute';
+import { toast } from 'sonner';
 
 // ─── Fix icono de Leaflet en Vite ─────────────────────────────────────────────
 import markerIconUrl from 'leaflet/dist/images/marker-icon.png';
@@ -173,7 +174,7 @@ function MapClickHandler({
         if (isWater) {
           onAddPoint(e.latlng.lat, e.latlng.lng);
         } else {
-          alert("Punto inválido: Solo se permite agregar puntos en el agua (validado por color).");
+          toast.error("Punto inválido: Solo se permite agregar puntos en el agua.");
         }
       }
     },
