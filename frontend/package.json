@@ -47,6 +47,8 @@
     "@react-three/drei": "^9.80.0",
     "@react-three/fiber": "^8.12.0",
     "@tanstack/react-query": "^5.90.7",
+    "@turf/boolean-point-in-polygon": "^7.3.5",
+    "@turf/helpers": "^7.3.5",
     "@types/leaflet": "^1.9.21",
     "amazon-cognito-identity-js": "^6.3.16",
     "aws-iot-device-sdk-v2": "^1.25.1",

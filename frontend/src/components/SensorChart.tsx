@@ -27,14 +27,14 @@ interface ChartPoint {
   time: string;
   temperatura: number;
   ph: number;
-  oxigeno: number;
+  // oxigeno: number;
   turbidez: number;
 }
 
 type VisibleLines = {
   temperatura: boolean;
   ph: boolean;
-  oxigeno: boolean;
+  // oxigeno: boolean;
   turbidez: boolean;
 };
 
@@ -42,7 +42,7 @@ const MAX_POINTS = 24;
 
 const SENSOR_LINES = [
   { key: "temperatura" as const, label: "Temp. Agua (°C)", color: "#f87171" },
-  { key: "oxigeno" as const, label: "O₂ Disuelto (ppm)", color: "#34d399" },
+  // { key: "oxigeno" as const, label: "O₂ Disuelto (ppm)", color: "#34d399" },
   { key: "ph" as const, label: "pH", color: "#a78bfa" },
   { key: "turbidez" as const, label: "Turbidez (NTU)", color: "#fbbf24" },
 ];
@@ -55,7 +55,7 @@ const SensorChart = () => {
   // Estados para la funcionalidad de navegación y visibilidad
   const [visibleLines, setVisibleLines] = useState<VisibleLines>({
     temperatura: true,
-    oxigeno: true,
+    // oxigeno: true,
     ph: true,
     turbidez: true,
   });
@@ -84,7 +84,7 @@ const SensorChart = () => {
       }),
       temperatura: misionData.temperatura_agua_c,
       ph: misionData.ph_agua,
-      oxigeno: misionData.oxigeno_disuelto_ppm,
+      // oxigeno: misionData.oxigeno_disuelto_ppm,
       turbidez: misionData.turbidez_ntu || 0,
     };
 
@@ -113,7 +113,12 @@ const SensorChart = () => {
   };
 
   const handleReset = () => {
-    setVisibleLines({ temperatura: true, ph: true, oxigeno: true, turbidez: true });
+    setVisibleLines({
+      temperatura: true,
+      ph: true,
+      // oxigeno: true,
+      turbidez: true,
+    });
     setCurrentIndex(0);
     setIsNavigating(false);
   };

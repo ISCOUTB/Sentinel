@@ -96,6 +96,57 @@ All colors MUST be HSL.
   animation: spin-slow 4s linear infinite;
 }
 
+/* Custom Tooltips for MapView */
+.custom-waypoint-tooltip {
+  background-color: hsl(var(--card));
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  font-weight: 600;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  padding: 4px 8px;
+}
+
+.custom-waypoint-tooltip::before {
+  border-bottom-color: hsl(var(--border)) !important;
+}
+
+.custom-distance-tooltip {
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #1e3a8a;
+  border: 1px solid #93c5fd;
+  border-radius: 9999px;
+  font-weight: bold;
+  font-size: 0.8rem;
+  padding: 2px 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.custom-distance-tooltip::before {
+  display: none; /* Hide the tooltip arrow */
+}
+
+.invisible-icon {
+  background: transparent;
+  border: none;
+}
+
+.custom-pin-wrapper {
+  background: transparent;
+  border: none;
+}
+
+.custom-pin {
+  width: 20px;
+  height: 20px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  border: 2px solid white;
+  box-shadow: 1px 1px 4px rgba(0,0,0,0.4);
+  position: relative;
+  top: -10px;
+}
+
 /* Login & Register Page Styles */
 
 .wrapper {

@@ -32,13 +32,13 @@ const SensorPanel = () => {
           icon: Droplet,
           color: 'text-blue-400',
         },
-        {
-          name: 'Oxígeno Disuelto',
-          value: misionData.oxigeno_disuelto_ppm.toFixed(1),
-          unit: 'ppm',
-          icon: Wind,
-          color: 'text-emerald-400',
-        },
+        // {
+        //   name: 'Oxígeno Disuelto',
+        //   value: misionData.oxigeno_disuelto_ppm.toFixed(1),
+        //   unit: 'ppm',
+        //   icon: Wind,
+        //   color: 'text-emerald-400',
+        // },
       ]
     : [];
 
@@ -88,10 +88,10 @@ const SensorPanel = () => {
       <h2 className="text-xl font-bold mb-3 flex-shrink-0">Datos Sensores</h2>
 
       <div className="flex-1 overflow-y-auto space-y-4 pr-2">
-        {/* ── Lista de sensores ambientales ── */}
-        <div className="space-y-2">
+        {/* ── Grid de sensores ambientales en columnas ── */}
+        <div className="grid grid-cols-3 gap-2">
           {sensors.length === 0 ? (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground col-span-3">
               Esperando datos del tópico <code>mision</code>…
             </p>
           ) : (
@@ -100,13 +100,13 @@ const SensorPanel = () => {
               return (
                 <div
                   key={sensor.name}
-                  className="flex items-center gap-3 p-3 bg-card rounded-lg border border-border hover:border-primary/50 transition-colors"
+                  className="flex flex-col items-center gap-2 p-3 bg-card rounded-lg border border-border hover:border-primary/50 transition-colors text-center"
                 >
                   <div className="p-2 bg-primary/10 rounded">
                     <Icon className={`w-5 h-5 ${sensor.color}`} />
                   </div>
-                  <span className="text-sm font-medium">{sensor.name}</span>
-                  <span className="ml-auto text-lg font-semibold">
+                  <span className="text-xs font-medium leading-tight">{sensor.name}</span>
+                  <span className="text-lg font-semibold">
                     {sensor.value}
                     <span className="text-xs text-muted-foreground ml-1">{sensor.unit}</span>
                   </span>
