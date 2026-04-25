@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import MapView from '@/components/MapView';
+import MapView, { MissionPoint } from '@/components/MapView';
 import SensorPanel from '@/components/SensorPanel';
 import StatusBar from '@/components/StatusBar';
 import AlertNotification from '@/components/AlertNotification';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { Trash2, MapPin } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -13,6 +14,10 @@ const Index = () => {
 
   // Guardamos el tiempo transcurrido en segundos
   const [elapsedTime, setElapsedTime] = useState(0);
+
+  // Mission Points State
+  const [missionPoints, setMissionPoints] = useState<MissionPoint[]>([]);
+  const [isSelectingPoints, setIsSelectingPoints] = useState(false);
 
   useEffect(() => {
     const startTime = Date.now(); // Marca el momento en que se abre el HMI
@@ -48,6 +53,15 @@ const Index = () => {
     navigate('/');
   };
 
+  // Mission Points Handlers
+  const handleAddPoint = (lat: number, lng: number) => {
+    setMissionPoints(prev => [...prev, { lat, lng }]);
+  };
+
+  const clearPoints = () => {
+    setMissionPoints([]);
+  };
+
   return (
     <div className="h-screen bg-background text-foreground p-4 flex flex-col overflow-hidden">
       <div className="max-w-[1920px] mx-auto w-full h-full flex flex-col">
@@ -81,8 +95,37 @@ const Index = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 overflow-hidden">
           {/* Map Section - Takes 2 columns */}
           <div className="lg:col-span-2 flex flex-col gap-4 overflow-hidden">
-            <div className="relative flex-1 min-h-0">
-              <MapView />
+            {/* Header for Map */}
+            <div className="flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-4">
+                <h2 className="text-xl font-bold">Mapa</h2>
+                <Button 
+                  variant={isSelectingPoints ? "default" : "secondary"} 
+                  size="sm"
+                  onClick={() => setIsSelectingPoints(!isSelectingPoints)}
+                >
+                  <MapPin className="w-4 h-4 mr-2" />
+                  {isSelectingPoints ? "Terminar Edición" : "Definir puntos de la mision"}
+                </Button>
+                {missionPoints.length > 0 && (
+                  <Button variant="destructive" size="sm" onClick={clearPoints}>
+                    <Trash2 className="w-4 h-4 mr-2" /> Limpiar Puntos
+                  </Button>
+                )}
+              </div>
+              {isSelectingPoints && (
+                <span className="text-sm text-primary font-semibold animate-pulse">
+                  Haz clic en el mapa para añadir puntos
+                </span>
+              )}
+            </div>
+
+            <div className={`relative flex-1 min-h-0 border rounded-xl overflow-hidden shadow-sm ${isSelectingPoints ? 'cursor-crosshair' : ''}`}>
+              <MapView 
+                missionPoints={missionPoints} 
+                isSelectingPoints={isSelectingPoints}
+                onAddPoint={handleAddPoint}
+              />
               <AlertNotification />
             </div>
             <div className="flex-shrink-0">
@@ -96,7 +139,6 @@ const Index = () => {
           </div>
         </div>
       </div>
-
     </div>
   );
 };
