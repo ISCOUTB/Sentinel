@@ -19,6 +19,15 @@ resource "aws_instance" "sentinel" {
     branch              = var.repo_branch
     user_pool_id        = var.user_pool_id
     user_pool_client_id = var.user_pool_client_id
+    aws_iot_endpoint    = var.aws_iot_endpoint
+    iot_certificate_pem = var.iot_certificate_pem
+    iot_private_key     = var.iot_private_key
+    influxdb_url        = var.influxdb_url
+    influxdb_org        = var.influxdb_org
+    influxdb_username   = var.influxdb_username
+    influxdb_password   = var.influxdb_password
+    influxdb_bucket     = var.influxdb_bucket
+    topic_bucket_map    = var.topic_bucket_map
     secret_key          = var.secret_key
     mysql_root_password = var.mysql_root_password
     mysql_user          = var.mysql_user

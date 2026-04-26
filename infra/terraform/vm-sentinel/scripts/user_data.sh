@@ -15,11 +15,6 @@ curl -fsSL https://get.docker.com | sh
 systemctl enable docker
 systemctl start docker
 
-# Instalar docker-compose v1 (NO v2)
-curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" \
--o /usr/local/bin/docker-compose
-chmod +x /usr/local/bin/docker-compose
-
 # Permisos usuario ubuntu
 usermod -aG docker ubuntu
 
@@ -50,9 +45,38 @@ MYSQL_PASSWORD="${mysql_password}"
 # Frontend Cognito
 TF_VAR_user_pool_id="${user_pool_id}"
 TF_VAR_user_pool_client_id="${user_pool_client_id}"
+
+# IoT bridge
+AWS_IOT_ENDPOINT="${aws_iot_endpoint}"
+AWS_IOT_CLIENT_ID="sentinel-influx-bridge"
+AWS_IOT_CERT_PATH="/certs/device.pem.crt"
+AWS_IOT_PRIVATE_KEY_PATH="/certs/private.pem.key"
+AWS_IOT_CA_PATH="/certs/AmazonRootCA1.pem"
+INFLUXDB_URL="${influxdb_url}"
+INFLUXDB_ORG="${influxdb_org}"
+INFLUXDB_USERNAME="${influxdb_username}"
+INFLUXDB_PASSWORD="${influxdb_password}"
+INFLUXDB_BUCKET="${influxdb_bucket}"
+TOPIC_BUCKET_MAP='${topic_bucket_map}'
 EOF
 
 chown ubuntu:ubuntu /home/ubuntu/Sentinel/infra/.env
+
+# Certificados para iot-influx-bridge
+mkdir -p /home/ubuntu/Sentinel/tests/iot-emulator/certs
+
+cat > /home/ubuntu/Sentinel/tests/iot-emulator/certs/device.pem.crt << 'EOF_CERT'
+${iot_certificate_pem}
+EOF_CERT
+
+cat > /home/ubuntu/Sentinel/tests/iot-emulator/certs/private.pem.key << 'EOF_KEY'
+${iot_private_key}
+EOF_KEY
+
+curl -fsSL https://www.amazontrust.com/repository/AmazonRootCA1.pem \
+  -o /home/ubuntu/Sentinel/tests/iot-emulator/certs/AmazonRootCA1.pem
+
+chown -R ubuntu:ubuntu /home/ubuntu/Sentinel/tests/iot-emulator/certs
 
 # Desactivar BuildKit (CRÍTICO)
 export DOCKER_BUILDKIT=0
@@ -65,4 +89,4 @@ done
 
 # Levantar contenedores DESDE LA RUTA CORRECTA
 cd /home/ubuntu/Sentinel/infra/docker
-sudo /usr/local/bin/docker-compose --env-file ../.env up -d --build
+sudo docker compose --env-file ../.env up -d --build

@@ -28,6 +28,51 @@ variable "user_pool_client_id" {
   default     = ""
 }
 
+variable "aws_iot_endpoint" {
+  description = "Endpoint de AWS IoT Core para el bridge de inserción"
+  default     = ""
+}
+
+variable "iot_certificate_pem" {
+  description = "Certificado PEM del cliente IoT para el bridge"
+  default     = ""
+}
+
+variable "iot_private_key" {
+  description = "Clave privada del cliente IoT para el bridge"
+  default     = ""
+}
+
+variable "influxdb_url" {
+  description = "URL de InfluxDB para el bridge"
+  default     = ""
+}
+
+variable "influxdb_org" {
+  description = "Organización de InfluxDB"
+  default     = ""
+}
+
+variable "influxdb_username" {
+  description = "Usuario de InfluxDB"
+  default     = ""
+}
+
+variable "influxdb_password" {
+  description = "Contraseña de InfluxDB"
+  default     = ""
+}
+
+variable "influxdb_bucket" {
+  description = "Bucket de fallback para el bridge"
+  default     = ""
+}
+
+variable "topic_bucket_map" {
+  description = "Mapa JSON de topicos a buckets"
+  default     = ""
+}
+
 variable "secret_key" {
   description = "Secret key para el backend"
   default     = "your-secret-key-here-change-this-in-production"
