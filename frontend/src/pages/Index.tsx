@@ -14,7 +14,7 @@ import { useIoTData } from '@/contexts/IoTContext';
 
 const Index = () => {
   const navigate = useNavigate();
-  const { logout, user, accessToken } = useAuth();
+  const { logout, user, accessToken, fullName, username } = useAuth();
   const { publish } = useIoTData();
 
   // Guardamos el tiempo transcurrido en segundos

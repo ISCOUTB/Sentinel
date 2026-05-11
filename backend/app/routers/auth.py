@@ -21,8 +21,8 @@ def refresh_token(request: RefreshTokenRequest, db: Session = Depends(get_db)):
     return refresh_access_token(db, request.refresh_token)
 
 @router.get("/me", response_model=UserResponse)
-def get_me(current_user: User = Depends(get_current_user)):
-    return current_user
+def get_me(current_user: dict = Depends(get_current_user)):
+    return current_user["db_user"]
 
 @router.post("/logout")
 def logout(request: RefreshTokenRequest, db: Session = Depends(get_db)):
