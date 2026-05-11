@@ -10,7 +10,7 @@ import { Trash2, MapPin } from "lucide-react";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { logout, user } = useAuth();
+  const { logout, user, username, fullName } = useAuth();
 
   // Guardamos el tiempo transcurrido en segundos
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -73,7 +73,7 @@ const Index = () => {
           <div className="flex items-center gap-4">
             <div className="text-right">
               <p className="text-xs text-muted-foreground">
-                Usuario: {user?.username || 'Cargando...'}
+                Usuario: {fullName || username || user?.username || 'Cargando...'}
               </p>
               <p className="text-xs text-muted-foreground">
                 {formatDate(new Date())}

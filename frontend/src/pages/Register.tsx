@@ -54,7 +54,7 @@ const Register = () => {
 
 
       // Registrar usuario en Cognito (username = email)
-      await register(email, email, password);
+      await register(email, email, password, name, lastName);
 
       // Navegar a la pantalla de confirmación de email
       navigate("/confirm-email", { state: { email } });
