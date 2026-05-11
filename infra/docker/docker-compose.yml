@@ -25,6 +25,8 @@ services:
       COGNITO_REGION: ${TF_VAR_region_sentinel:-us-east-1}
       COGNITO_USER_POOL_ID: ${TF_VAR_user_pool_id:-us-east-1_PfMPPwYKa}
       COGNITO_APP_CLIENT_ID: ${TF_VAR_user_pool_client_id:-2i6r6a7hi79epi20b5uedgeo1e}
+    env_file:
+      - ../../backend/.env
     depends_on:
       - db
     command:

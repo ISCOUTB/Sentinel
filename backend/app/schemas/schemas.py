@@ -67,6 +67,7 @@ class MapDataResponse(BaseModel):
 
 class MissionCreate(BaseModel):
     name: str
+    points: list[MapCoordinates] = []
 
 class MissionResponse(BaseModel):
     id: str
@@ -82,5 +83,5 @@ class TelemetryData(BaseModel):
     temperatura_agua_c: float
     ph_agua: float
     turbidez_ntu: float
-    oxigeno_disuelto_ppm: float
+    oxigeno_disuelto_ppm: Optional[float] = None
     bateria_porcentaje: Optional[float] = None

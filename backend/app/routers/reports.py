@@ -29,7 +29,6 @@ def generate_graphs(df: pd.DataFrame) -> dict:
         'temperature': ('Temperatura del Agua (°C)', 'red'),
         'ph': ('pH del Agua', 'green'),
         'turbidity': ('Turbidez (NTU)', 'orange'),
-        'dissolved_oxygen': ('Oxígeno Disuelto (ppm)', 'blue')
     }
 
     for column, (title, color) in metrics.items():
@@ -79,7 +78,6 @@ def generate_report(mission_id: str = Query(...), db: Session = Depends(get_db),
                     "temperature": record.values.get("temperatura_agua_c"),
                     "ph": record.values.get("ph_agua"),
                     "turbidity": record.values.get("turbidez_ntu"),
-                    "dissolved_oxygen": record.values.get("oxigeno_disuelto_ppm")
                 })
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al consultar InfluxDB: {str(e)}")
@@ -91,7 +89,7 @@ def generate_report(mission_id: str = Query(...), db: Session = Depends(get_db),
 
     # Calculate statistics
     stats = {}
-    for col in ['temperature', 'ph', 'turbidity', 'dissolved_oxygen']:
+    for col in ['temperature', 'ph', 'turbidity']:
         if col in df.columns:
             stats[col] = {
                 'min': df[col].min(),
@@ -103,10 +101,9 @@ def generate_report(mission_id: str = Query(...), db: Session = Depends(get_db),
     prompt = f"""
     Eres un analista experto en calidad del agua. A continuación se presentan las estadísticas de una misión de monitoreo (Misión ID: {mission.name}):
     
-    - Temperatura (°C): Min {stats.get('temperature', {}).get('min', 'N/A'):.2f}, Max {stats.get('temperature', {}).get('max', 'N/A'):.2f}, Promedio {stats.get('temperature', {}).get('mean', 'N/A'):.2f}
-    - pH: Min {stats.get('ph', {}).get('min', 'N/A'):.2f}, Max {stats.get('ph', {}).get('max', 'N/A'):.2f}, Promedio {stats.get('ph', {}).get('mean', 'N/A'):.2f}
-    - Turbidez (NTU): Min {stats.get('turbidity', {}).get('min', 'N/A'):.2f}, Max {stats.get('turbidity', {}).get('max', 'N/A'):.2f}, Promedio {stats.get('turbidity', {}).get('mean', 'N/A'):.2f}
-    - Oxígeno Disuelto (ppm): Min {stats.get('dissolved_oxygen', {}).get('min', 'N/A'):.2f}, Max {stats.get('dissolved_oxygen', {}).get('max', 'N/A'):.2f}, Promedio {stats.get('dissolved_oxygen', {}).get('mean', 'N/A'):.2f}
+    - Temperatura (°C): Min {stats.get('temperature', {}).get('min', 'N/A') if stats.get('temperature') else 'N/A':.2f}, Max {stats.get('temperature', {}).get('max', 'N/A') if stats.get('temperature') else 'N/A':.2f}, Promedio {stats.get('temperature', {}).get('mean', 'N/A') if stats.get('temperature') else 'N/A':.2f}
+    - pH: Min {stats.get('ph', {}).get('min', 'N/A') if stats.get('ph') else 'N/A':.2f}, Max {stats.get('ph', {}).get('max', 'N/A') if stats.get('ph') else 'N/A':.2f}, Promedio {stats.get('ph', {}).get('mean', 'N/A') if stats.get('ph') else 'N/A':.2f}
+    - Turbidez (NTU): Min {stats.get('turbidity', {}).get('min', 'N/A') if stats.get('turbidity') else 'N/A':.2f}, Max {stats.get('turbidity', {}).get('max', 'N/A') if stats.get('turbidity') else 'N/A':.2f}, Promedio {stats.get('turbidity', {}).get('mean', 'N/A') if stats.get('turbidity') else 'N/A':.2f}
     
     Por favor, redacta un análisis ejecutivo de la calidad del agua basado en estos parámetros. Menciona si hay alguna anomalía o riesgo ambiental (considera los niveles normales de agua dulce o marina según tu criterio). Escribe el reporte en español, usando formato HTML básico (párrafos, listas) sin usar Markdown.
     """

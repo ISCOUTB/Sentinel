@@ -203,12 +203,12 @@ export const dataAPI = {
   /**
    * Crea una nueva misión
    */
-  createMission: async (name: string, accessToken: string) => {
+  createMission: async (name: string, points: {lat: number, lng: number}[], accessToken: string) => {
     return apiRequest<any>(
       '/data/missions',
       {
         method: 'POST',
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name, points }),
       },
       accessToken
     );

@@ -51,7 +51,6 @@ const state = {
   temperatura: jsonData.mision.temperatura_agua_c,
   ph: jsonData.mision.ph_agua,
   turbidez: jsonData.mision.turbidez_ntu,
-  //oxigeno: jsonData.mision.oxigeno_disuelto_ppm,
   waypoints: [],
   currentWaypointIndex: 0,
   active_mission_id: null,
@@ -120,7 +119,6 @@ function nextState() {
   state.temperatura = smoothStep(state.temperatura, 0.08, 23.0, 30.0);
   state.ph = smoothStep(state.ph, 0.015, 6.6, 8.2);
   state.turbidez = smoothStep(state.turbidez, 0.25, 5.0, 40.0);
-  state.oxigeno = smoothStep(state.oxigeno, 0.05, 5.0, 11.0);
 }
 
 function createLog(status, mission, timestamp_utc) {
@@ -136,10 +134,6 @@ function createLog(status, mission, timestamp_utc) {
     nivel = "WARNING";
     codigo = 201;
     mensaje = `Bateria baja ${status.bateria_porcentaje}%. Continuar con precaucion.`;
-  } else if (mission.oxigeno_disuelto_ppm < 6.0) {
-    nivel = "WARNING";
-    codigo = 203;
-    mensaje = `Oxigeno disuelto bajo (${mission.oxigeno_disuelto_ppm} ppm) en punto de muestreo.`;
   } else if (mission.temperatura_agua_c > 28.0) {
     nivel = "WARNING";
     codigo = 202;
@@ -237,7 +231,6 @@ setInterval(async () => {
     temperatura_agua_c: round(state.temperatura, 2),
     ph_agua: round(state.ph, 3),
     turbidez_ntu: round(state.turbidez, 2),
-    oxigeno_disuelto_ppm: round(state.oxigeno, 2),
     mission_id: state.active_mission_id || "sin_mision",
     timestamp_utc,
   };
@@ -268,7 +261,6 @@ setInterval(async () => {
         temperatura_agua_c: mission.temperatura_agua_c,
         ph_agua: mission.ph_agua,
         turbidez_ntu: mission.turbidez_ntu,
-        oxigeno_disuelto_ppm: mission.oxigeno_disuelto_ppm,
         bateria_porcentaje: status.bateria_porcentaje
       };
 
@@ -282,11 +274,10 @@ setInterval(async () => {
         console.log(`[FALLBACK SUCCESS]: Telemetría guardada en DB local para misión ${state.active_mission_id}`);
       } else {
         const errorText = await postRes.text();
-        console.error(`[FALLBACK ERROR]: Error al guardar telemetría`, errorText);
-        // Si la misión ya finalizó o es inválida, limpiamos la misión activa
-        if (errorText.includes("finalizada") || errorText.includes("no encontrada")) {
-          state.active_mission_id = null;
-        }
+        console.error(`[FALLBACK ERROR]: Error al guardar telemetría [${postRes.status}]`, errorText);
+        // Detener misión ante cualquier error del backend (finalizada, no encontrada, 422, etc)
+        state.active_mission_id = null;
+        state.waypoints = [];
       }
     } catch (err) {
       console.error(`[FALLBACK ERROR]: Backend local no accesible`, err.message);

@@ -82,17 +82,10 @@ const Index = () => {
     setLoadingMission(true);
     try {
       const missionName = `Misión HMI ${formatDate(new Date())}`;
-      const response = await dataAPI.createMission(missionName, accessToken!);
+      const response = await dataAPI.createMission(missionName, missionPoints, accessToken!);
       setActiveMissionId(response.id);
       setIsSelectingPoints(false);
       
-      // Publicar los waypoints al tópico MQTT
-      const waypointsTopic = `${import.meta.env.VITE_IOT_THING_NAME || 'USV-001'}/waypoints`;
-      await publish(waypointsTopic, {
-        mission_id: response.id,
-        points: missionPoints
-      });
-
       toast.success('Misión iniciada. El sistema guardará la telemetría y el vehículo se pondrá en marcha.');
     } catch (err) {
       console.error(err);

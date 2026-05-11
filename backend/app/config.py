@@ -25,9 +25,15 @@ class Settings(BaseSettings):
     INFLUXDB_TOKEN: str = "sentinel-local-admin-token-please-change"
     INFLUXDB_ORG: str = "sentinel-org"
     INFLUXDB_BUCKET: str = "mission"
-
+    
+    # AWS IoT Core Configuration
+    IOT_ENDPOINT: str = "https://a3399dxn78u8zv-ats.iot.us-east-1.amazonaws.com"
+    IOT_THING_NAME: str = "USV-001"
+    AWS_ACCESS_KEY_ID: str = ""
+    AWS_SECRET_ACCESS_KEY: str = ""
     class Config:
         env_file = ".env"
+        extra = "ignore"
 
     @field_validator('BACKEND_CORS_ORIGINS', mode='before')
     @classmethod

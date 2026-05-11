@@ -23,9 +23,9 @@
         <div>
             <h1>Reporte de Calidad de Agua Sentinel</h1>
             <p><strong>Misión:</strong> {{ mission.name }} (ID: {{ mission.id }})</p>
-            <p><strong>Estado:</strong> {{ mission.status }}</p>
-            <p><strong>Inicio:</strong> {{ mission.start_time.strftime('%Y-%m-%d %H:%M') }}</p>
-            <p><strong>Fin:</strong> {{ mission.end_time.strftime('%Y-%m-%d %H:%M') if mission.end_time else 'En progreso' }}</p>
+            <p><strong>Estado:</strong> {{ mission.status.replace('_', ' ') }}</p>
+            <p><strong>Inicio:</strong> {{ mission.start_time.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+            <p><strong>Fin:</strong> {{ mission.end_time.strftime('%Y-%m-%d %H:%M:%S') if mission.end_time else 'En progreso' }}</p>
         </div>
         <div style="text-align: right;">
             <p><strong>Fecha de Emisión:</strong><br>{{ date }}</p>
@@ -66,12 +66,6 @@
                 <td>{{ "%.2f"|format(stats.turbidity.max) }}</td>
                 <td>{{ "%.2f"|format(stats.turbidity.mean) }}</td>
             </tr>
-            <tr>
-                <td>Oxígeno Disuelto (ppm)</td>
-                <td>{{ "%.2f"|format(stats.dissolved_oxygen.min) }}</td>
-                <td>{{ "%.2f"|format(stats.dissolved_oxygen.max) }}</td>
-                <td>{{ "%.2f"|format(stats.dissolved_oxygen.mean) }}</td>
-            </tr>
         </tbody>
     </table>
 
@@ -97,10 +91,6 @@
     </div>
     {% endif %}
 
-    {% if graphs.dissolved_oxygen %}
-    <div class="graph-container">
-        <img src="{{ graphs.dissolved_oxygen }}" alt="Gráfico de Oxígeno Disuelto">
-    </div>
     {% endif %}
 
     <div class="footer">

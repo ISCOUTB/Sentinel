@@ -9,6 +9,9 @@ from app.database import get_db
 from sqlalchemy.orm import Session
 from app.models.models import Mission, SensorData
 import uuid
+import json
+import boto3
+from app.config import settings
 
 router = APIRouter(prefix="/data", tags=["data"])
 
@@ -103,6 +106,31 @@ def create_mission(mission_in: MissionCreate, db: Session = Depends(get_db), cur
     db.add(new_mission)
     db.commit()
     db.refresh(new_mission)
+
+    # Publicar los waypoints en AWS IoT Core
+    if mission_in.points:
+        try:
+            iot_client = boto3.client(
+                'iot-data', 
+                region_name=settings.COGNITO_REGION, 
+                endpoint_url=settings.IOT_ENDPOINT,
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
+            )
+            topic = f"{settings.IOT_THING_NAME}/waypoints"
+            payload = {
+                "mission_id": new_mission.id,
+                "points": [{"lat": p.lat, "lng": p.lng} for p in mission_in.points]
+            }
+            iot_client.publish(
+                topic=topic,
+                qos=1,
+                payload=json.dumps(payload)
+            )
+        except Exception as e:
+            print(f"Error publishing to IoT Core: {e}")
+            # Optional: handle error depending on how critical it is
+            
     return new_mission
 
 @router.patch("/missions/{mission_id}/finish", response_model=MissionResponse)
