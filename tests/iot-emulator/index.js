@@ -31,6 +31,7 @@ const TOPICS = {
   STATUS: `${THING_NAME}/general_usv_status`,
   MISSION: `${THING_NAME}/mision`,
   LOGS: `${THING_NAME}/logs`,
+  WAYPOINTS: `${THING_NAME}/waypoints`,
 };
 
 // ===== Estado dinámico de simulación =====
@@ -50,7 +51,10 @@ const state = {
   temperatura: jsonData.mision.temperatura_agua_c,
   ph: jsonData.mision.ph_agua,
   turbidez: jsonData.mision.turbidez_ntu,
-  oxigeno: jsonData.mision.oxigeno_disuelto_ppm,
+  //oxigeno: jsonData.mision.oxigeno_disuelto_ppm,
+  waypoints: [],
+  currentWaypointIndex: 0,
+  active_mission_id: null,
 };
 
 function clamp(value, min, max) {
@@ -69,9 +73,32 @@ function round(value, decimals) {
 function nextState() {
   state.tick += 1;
 
-  // Ruta suave con deriva pequeña.
-  state.latitud += 0.00005 + (Math.random() * 2 - 1) * 0.00002;
-  state.longitud += 0.00003 + (Math.random() * 2 - 1) * 0.00002;
+  if (state.waypoints && state.waypoints.length > 0 && state.currentWaypointIndex < state.waypoints.length) {
+    // Navigation mode
+    const target = state.waypoints[state.currentWaypointIndex];
+    const dx = target.lng - state.longitud;
+    const dy = target.lat - state.latitud;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    // Si estamos suficientemente cerca, pasamos al siguiente punto
+    if (distance < 0.0001) {
+      state.currentWaypointIndex++;
+      console.log(`[NAV]: Waypoint alcanzado. Siguiente waypoint: ${state.currentWaypointIndex}`);
+    } else {
+      // Nos movemos un paso fijo hacia el objetivo
+      const step = Math.min(0.00008, distance); // Velocidad
+      state.longitud += (dx / distance) * step;
+      state.latitud += (dy / distance) * step;
+
+      // Ajustar yaw apuntando al destino
+      const targetBearing = (Math.atan2(dx, dy) * 180) / Math.PI;
+      state.yaw = (targetBearing + 360) % 360;
+    }
+  } else {
+    // Modo Drift (Sin misión activa)
+    state.latitud += 0.00005 + (Math.random() * 2 - 1) * 0.00002;
+    state.longitud += 0.00003 + (Math.random() * 2 - 1) * 0.00002;
+  }
 
   // Descarga gradual de batería y ajuste coherente de voltajes/corriente.
   state.bateria = clamp(state.bateria - 0.02, 20, 100);
@@ -133,78 +160,139 @@ function createLog(status, mission, timestamp_utc) {
   };
 }
 
+let awsConnected = false;
+
 device.on("connect", () => {
   console.log("[CONNECT]: Conectado a AWS IoT Core <====");
+  awsConnected = true;
 
-  setInterval(() => {
-    const timestamp_utc = new Date().toISOString();
+  // Suscribirse al tópico de waypoints
+  device.subscribe(TOPICS.WAYPOINTS);
+  console.log(`[SUBSCRIBE]: Escuchando en ${TOPICS.WAYPOINTS}`);
+});
 
-    nextState();
-
-    const status = {
-      ...jsonData.general_usv_status,
-      usv_id: THING_NAME,
-      actividad: state.bateria <= 25 ? "RETORNO" : jsonData.general_usv_status.actividad,
-      bateria_porcentaje: round(state.bateria, 1),
-      corriente_motor_1_a: round(state.corriente_motor_1, 2),
-      corriente_motor_2_a: round(state.corriente_motor_2, 2),
-      voltaje_celda_1_v: round(state.voltaje_celda_1, 3),
-      voltaje_celda_2_v: round(state.voltaje_celda_2, 3),
-      voltaje_celda_3_v: round(state.voltaje_celda_3, 3),
-      roll_grados: round(state.roll, 2),
-      pitch_grados: round(state.pitch, 2),
-      yaw_grados: round(state.yaw, 2),
-      latitud: round(state.latitud, 6),
-      longitud: round(state.longitud, 6),
-      timestamp_utc,
-    };
-
-    const mission = {
-      ...jsonData.mision,
-      usv_id: THING_NAME,
-      estado_mision: state.bateria <= 25 ? "RETORNO" : jsonData.mision.estado_mision,
-      latitud: status.latitud,
-      longitud: status.longitud,
-      temperatura_agua_c: round(state.temperatura, 2),
-      ph_agua: round(state.ph, 3),
-      turbidez_ntu: round(state.turbidez, 2),
-      oxigeno_disuelto_ppm: round(state.oxigeno, 2),
-      timestamp_utc,
-    };
-
-    const log = createLog(status, mission, timestamp_utc);
-
-    // Enviar USV Status
-    device.publish(
-      TOPICS.STATUS,
-      JSON.stringify(status)
-    );
-    console.log(`[SEND]: status ${status.bateria_porcentaje}% | lat ${status.latitud} | lon ${status.longitud}`);
-
-    // Enviar Mission Data
-    device.publish(
-      TOPICS.MISSION,
-      JSON.stringify(mission)
-    );
-    console.log(`[SEND]: mission Temp ${mission.temperatura_agua_c}C | pH ${mission.ph_agua} | O2 ${mission.oxigeno_disuelto_ppm}`);
-
-    // Enviar Logs
-    device.publish(
-      TOPICS.LOGS,
-      JSON.stringify(log)
-    );
-    console.log(`[SEND]: log [${log.nivel}] ${log.codigo} - ${log.mensaje}`);
-  }, 5000);
+device.on("message", (topic, payload) => {
+  if (topic === TOPICS.WAYPOINTS) {
+    try {
+      const data = JSON.parse(payload.toString());
+      console.log(`[RECV WAYPOINTS]: Recibidos ${data.points?.length} puntos para la misión ${data.mission_id}`);
+      if (data.points && Array.isArray(data.points)) {
+        state.waypoints = data.points;
+        state.currentWaypointIndex = 0;
+        if (data.mission_id) {
+          state.active_mission_id = data.mission_id;
+          console.log(`[NAV]: Misión activa asignada a ${state.active_mission_id}`);
+        }
+      }
+    } catch (err) {
+      console.error("[RECV ERROR]: Error parseando waypoints", err);
+    }
+  }
 });
 
 device.on("close", () => {
   console.log("[CLOSE]: CONEXIÓN CERRADA <====");
+  awsConnected = false;
 });
 
 device.on("reconnect", () => {
   console.log("[RECONNECT]: Reintentando conexión... <====");
+  awsConnected = false;
 });
 
 device.on("error", (err) => {
   console.error("[ERROR]:", err);
+  awsConnected = false;
 });
+
+setInterval(async () => {
+  const timestamp_utc = new Date().toISOString();
+
+  nextState();
+
+  const status = {
+    ...jsonData.general_usv_status,
+    usv_id: THING_NAME,
+    actividad: state.bateria <= 25 ? "RETORNO" : jsonData.general_usv_status.actividad,
+    bateria_porcentaje: round(state.bateria, 1),
+    corriente_motor_1_a: round(state.corriente_motor_1, 2),
+    corriente_motor_2_a: round(state.corriente_motor_2, 2),
+    voltaje_celda_1_v: round(state.voltaje_celda_1, 3),
+    voltaje_celda_2_v: round(state.voltaje_celda_2, 3),
+    voltaje_celda_3_v: round(state.voltaje_celda_3, 3),
+    roll_grados: round(state.roll, 2),
+    pitch_grados: round(state.pitch, 2),
+    yaw_grados: round(state.yaw, 2),
+    latitud: round(state.latitud, 6),
+    longitud: round(state.longitud, 6),
+    timestamp_utc,
+  };
+
+  const mission = {
+    ...jsonData.mision,
+    usv_id: THING_NAME,
+    estado_mision: state.bateria <= 25 ? "RETORNO" : jsonData.mision.estado_mision,
+    latitud: status.latitud,
+    longitud: status.longitud,
+    temperatura_agua_c: round(state.temperatura, 2),
+    ph_agua: round(state.ph, 3),
+    turbidez_ntu: round(state.turbidez, 2),
+    oxigeno_disuelto_ppm: round(state.oxigeno, 2),
+    mission_id: state.active_mission_id || "sin_mision",
+    timestamp_utc,
+  };
+
+  const log = createLog(status, mission, timestamp_utc);
+
+  if (awsConnected) {
+    // Enviar USV Status
+    device.publish(TOPICS.STATUS, JSON.stringify(status));
+    console.log(`[SEND AWS]: status ${status.bateria_porcentaje}% | lat ${status.latitud} | lon ${status.longitud}`);
+
+    // Enviar Mission Data
+    device.publish(TOPICS.MISSION, JSON.stringify(mission));
+    console.log(`[SEND AWS]: mission Temp ${mission.temperatura_agua_c}C | pH ${mission.ph_agua} | O2 ${mission.oxigeno_disuelto_ppm}`);
+
+    // Enviar Logs
+    device.publish(TOPICS.LOGS, JSON.stringify(log));
+    console.log(`[SEND AWS]: log [${log.nivel}] ${log.codigo} - ${log.mensaje}`);
+  }
+
+  // Siempre enviar a HTTP Local para popular la base de datos y permitir reportes
+  if (state.active_mission_id) {
+    try {
+      const telemetryPayload = {
+        mission_id: state.active_mission_id,
+        latitud: status.latitud,
+        longitud: status.longitud,
+        temperatura_agua_c: mission.temperatura_agua_c,
+        ph_agua: mission.ph_agua,
+        turbidez_ntu: mission.turbidez_ntu,
+        oxigeno_disuelto_ppm: mission.oxigeno_disuelto_ppm,
+        bateria_porcentaje: status.bateria_porcentaje
+      };
+
+      const postRes = await fetch('http://localhost:8000/api/v1/data/telemetry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(telemetryPayload)
+      });
+
+      if (postRes.ok) {
+        console.log(`[FALLBACK SUCCESS]: Telemetría guardada en DB local para misión ${state.active_mission_id}`);
+      } else {
+        const errorText = await postRes.text();
+        console.error(`[FALLBACK ERROR]: Error al guardar telemetría`, errorText);
+        // Si la misión ya finalizó o es inválida, limpiamos la misión activa
+        if (errorText.includes("finalizada") || errorText.includes("no encontrada")) {
+          state.active_mission_id = null;
+        }
+      }
+    } catch (err) {
+      console.error(`[FALLBACK ERROR]: Backend local no accesible`, err.message);
+    }
+  } else {
+    // Para depuración si no hay misión activa
+    // console.log(`[FALLBACK INFO]: No hay misión EN_PROGRESO para enviar telemetría.`);
+  }
+}, 5000);

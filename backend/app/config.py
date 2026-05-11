@@ -16,6 +16,15 @@ class Settings(BaseSettings):
     COGNITO_REGION: str = "us-east-1"
     COGNITO_USER_POOL_ID: str = "us-east-1_2ZOyS9sDI"
     COGNITO_APP_CLIENT_ID: str = "7k22tsf93huoqkcjlp6oivvjbl"
+    
+    # Gemini API
+    GEMINI_API_KEY: str = ""
+
+    # InfluxDB Configuration
+    INFLUXDB_URL: str = "http://host.docker.internal:8086"
+    INFLUXDB_TOKEN: str = "sentinel-local-admin-token-please-change"
+    INFLUXDB_ORG: str = "sentinel-org"
+    INFLUXDB_BUCKET: str = "mission"
 
     class Config:
         env_file = ".env"

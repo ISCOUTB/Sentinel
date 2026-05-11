@@ -216,15 +216,7 @@ export default function MapView({
   const roll = usvStatus?.roll_grados ?? 0;
   const pitch = usvStatus?.pitch_grados ?? 0;
 
-  // Centrar mapa cuando cambian las coordenadas GPS
-  useEffect(() => {
-    if (mapRef.current && usvStatus && !isSelectingPoints) {
-      mapRef.current.setView([usvStatus.latitud, usvStatus.longitud], undefined, {
-        animate: true,
-        duration: 1,
-      });
-    }
-  }, [usvStatus?.latitud, usvStatus?.longitud, isSelectingPoints]);
+  // Auto-centrado deshabilitado para evitar que mueva la vista al usuario
 
   // Pan con teclas
   useEffect(() => {

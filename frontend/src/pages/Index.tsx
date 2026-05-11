@@ -6,11 +6,16 @@ import StatusBar from '@/components/StatusBar';
 import AlertNotification from '@/components/AlertNotification';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Trash2, MapPin } from "lucide-react";
+import { Trash2, MapPin, Play, Square } from "lucide-react";
+import ReportGeneratorModal from '@/components/ReportGeneratorModal';
+import { dataAPI } from '@/api/gateway';
+import { toast } from 'sonner';
+import { useIoTData } from '@/contexts/IoTContext';
 
 const Index = () => {
   const navigate = useNavigate();
-  const { logout, user, username, fullName } = useAuth();
+  const { logout, user, accessToken } = useAuth();
+  const { publish } = useIoTData();
 
   // Guardamos el tiempo transcurrido en segundos
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -18,6 +23,8 @@ const Index = () => {
   // Mission Points State
   const [missionPoints, setMissionPoints] = useState<MissionPoint[]>([]);
   const [isSelectingPoints, setIsSelectingPoints] = useState(false);
+  const [activeMissionId, setActiveMissionId] = useState<string | null>(null);
+  const [loadingMission, setLoadingMission] = useState(false);
 
   useEffect(() => {
     const startTime = Date.now(); // Marca el momento en que se abre el HMI
@@ -59,7 +66,56 @@ const Index = () => {
   };
 
   const clearPoints = () => {
+    if (activeMissionId) {
+      toast.error('No puedes limpiar los puntos mientras la misión está en progreso.');
+      return;
+    }
     setMissionPoints([]);
+  };
+
+  const handleStartMission = async () => {
+    if (missionPoints.length < 2) {
+      toast.error('Necesitas al menos 2 puntos para iniciar la misión.');
+      return;
+    }
+    
+    setLoadingMission(true);
+    try {
+      const missionName = `Misión HMI ${formatDate(new Date())}`;
+      const response = await dataAPI.createMission(missionName, accessToken!);
+      setActiveMissionId(response.id);
+      setIsSelectingPoints(false);
+      
+      // Publicar los waypoints al tópico MQTT
+      const waypointsTopic = `${import.meta.env.VITE_IOT_THING_NAME || 'USV-001'}/waypoints`;
+      await publish(waypointsTopic, {
+        mission_id: response.id,
+        points: missionPoints
+      });
+
+      toast.success('Misión iniciada. El sistema guardará la telemetría y el vehículo se pondrá en marcha.');
+    } catch (err) {
+      console.error(err);
+      toast.error('Error al iniciar la misión');
+    } finally {
+      setLoadingMission(false);
+    }
+  };
+
+  const handleFinishMission = async () => {
+    if (!activeMissionId) return;
+    
+    setLoadingMission(true);
+    try {
+      await dataAPI.finishMission(activeMissionId, accessToken!);
+      setActiveMissionId(null);
+      toast.success('Misión finalizada correctamente.');
+    } catch (err) {
+      console.error(err);
+      toast.error('Error al finalizar la misión');
+    } finally {
+      setLoadingMission(false);
+    }
   };
 
   return (
@@ -85,6 +141,7 @@ const Index = () => {
                 </span>
               </p>
             </div>
+            <ReportGeneratorModal />
             <Button onClick={handleLogout} variant="outline">
               Cerrar Sesión
             </Button>
@@ -103,13 +160,38 @@ const Index = () => {
                   variant={isSelectingPoints ? "default" : "secondary"} 
                   size="sm"
                   onClick={() => setIsSelectingPoints(!isSelectingPoints)}
+                  disabled={activeMissionId !== null}
                 >
                   <MapPin className="w-4 h-4 mr-2" />
                   {isSelectingPoints ? "Terminar Edición" : "Definir puntos de la mision"}
                 </Button>
                 {missionPoints.length > 0 && (
-                  <Button variant="destructive" size="sm" onClick={clearPoints}>
+                  <Button variant="destructive" size="sm" onClick={clearPoints} disabled={activeMissionId !== null}>
                     <Trash2 className="w-4 h-4 mr-2" /> Limpiar Puntos
+                  </Button>
+                )}
+                
+                {missionPoints.length >= 2 && !activeMissionId && !isSelectingPoints && (
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    onClick={handleStartMission}
+                    disabled={loadingMission}
+                  >
+                    <Play className="w-4 h-4 mr-2" /> Iniciar Misión
+                  </Button>
+                )}
+
+                {activeMissionId && (
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="bg-red-600 hover:bg-red-700 text-white animate-pulse"
+                    onClick={handleFinishMission}
+                    disabled={loadingMission}
+                  >
+                    <Square className="w-4 h-4 mr-2" /> Finalizar Misión
                   </Button>
                 )}
               </div>

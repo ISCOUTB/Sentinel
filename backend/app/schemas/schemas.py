@@ -64,3 +64,23 @@ class MapDataResponse(BaseModel):
     location: str
     mode: str
     coordinates: MapCoordinates
+
+class MissionCreate(BaseModel):
+    name: str
+
+class MissionResponse(BaseModel):
+    id: str
+    name: str
+    status: str
+    start_time: datetime
+    end_time: Optional[datetime] = None
+
+class TelemetryData(BaseModel):
+    mission_id: str
+    latitud: float
+    longitud: float
+    temperatura_agua_c: float
+    ph_agua: float
+    turbidez_ntu: float
+    oxigeno_disuelto_ppm: float
+    bateria_porcentaje: Optional[float] = None

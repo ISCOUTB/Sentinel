@@ -186,4 +186,73 @@ export const dataAPI = {
       accessToken
     );
   },
+
+  /**
+   * Obtiene la lista de misiones
+   */
+  getMissions: async (accessToken: string) => {
+    return apiRequest<any[]>(
+      '/data/missions',
+      {
+        method: 'GET',
+      },
+      accessToken
+    );
+  },
+
+  /**
+   * Crea una nueva misión
+   */
+  createMission: async (name: string, accessToken: string) => {
+    return apiRequest<any>(
+      '/data/missions',
+      {
+        method: 'POST',
+        body: JSON.stringify({ name }),
+      },
+      accessToken
+    );
+  },
+
+  /**
+   * Finaliza una misión
+   */
+  finishMission: async (missionId: string, accessToken: string) => {
+    return apiRequest<any>(
+      `/data/missions/${missionId}/finish`,
+      {
+        method: 'PATCH',
+      },
+      accessToken
+    );
+  },
+
+  /**
+   * Genera un reporte PDF con IA
+   */
+  generateReport: async (missionId: string, accessToken: string) => {
+    const url = `/reports/generate?mission_id=${encodeURIComponent(missionId)}`;
+    const endpoint = url.startsWith('http') ? url : `${cognitoConfig.apiGatewayUrl || '/api/v1'}${url}`;
+    
+    const headers: Record<string, string> = {};
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage =
+        errorData.detail ||
+        errorData.message ||
+        `HTTP ${response.status}: ${response.statusText}`;
+      throw new Error(errorMessage);
+    }
+
+    return response.blob();
+  },
 };

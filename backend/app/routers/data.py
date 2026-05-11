@@ -2,9 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 import random
 import datetime
-from app.schemas.schemas import SensorDataResponse, MapDataResponse, SensorItem, MetricItem, LogItem, MapCoordinates
+from app.schemas.schemas import SensorDataResponse, MapDataResponse, SensorItem, MetricItem, LogItem, MapCoordinates, MissionCreate, MissionResponse, TelemetryData
 from app.dependencies.auth import get_current_user
 from app.core.security import require_admin, require_user
+from app.database import get_db
+from sqlalchemy.orm import Session
+from app.models.models import Mission, SensorData
+import uuid
 
 router = APIRouter(prefix="/data", tags=["data"])
 
@@ -67,3 +71,77 @@ def user_data(user=Depends(require_user)):
         "user_email": user["email"],
         "roles": user["roles"]
     }
+
+@router.get("/missions")
+def get_missions(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    """
+    Obtener lista de misiones disponibles.
+    """
+    missions = db.query(Mission).order_by(Mission.start_time.desc()).all()
+    return [
+        {
+            "id": m.id,
+            "name": m.name or f"Misión {m.id}",
+            "status": m.status,
+            "start_time": m.start_time,
+            "end_time": m.end_time
+        }
+        for m in missions
+    ]
+
+@router.post("/missions", response_model=MissionResponse)
+def create_mission(mission_in: MissionCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    """
+    Crear una nueva misión.
+    """
+    new_mission = Mission(
+        id=str(uuid.uuid4())[:8],
+        name=mission_in.name,
+        status="EN_PROGRESO",
+        start_time=datetime.datetime.utcnow()
+    )
+    db.add(new_mission)
+    db.commit()
+    db.refresh(new_mission)
+    return new_mission
+
+@router.patch("/missions/{mission_id}/finish", response_model=MissionResponse)
+def finish_mission(mission_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    """
+    Finalizar una misión existente.
+    """
+    mission = db.query(Mission).filter(Mission.id == mission_id).first()
+    if not mission:
+        raise HTTPException(status_code=404, detail="Misión no encontrada")
+    
+    mission.status = "FINALIZADO"
+    mission.end_time = datetime.datetime.utcnow()
+    db.commit()
+    db.refresh(mission)
+    return mission
+
+@router.post("/telemetry")
+def ingest_telemetry(data: TelemetryData, db: Session = Depends(get_db)):
+    """
+    Ingestar datos de telemetría desde el USV (o emulador).
+    """
+    mission = db.query(Mission).filter(Mission.id == data.mission_id).first()
+    if not mission:
+        raise HTTPException(status_code=404, detail="Misión no encontrada o no válida")
+    
+    if mission.status == "FINALIZADO":
+        raise HTTPException(status_code=400, detail="La misión ya está finalizada")
+
+    new_sensor_data = SensorData(
+        mission_id=mission.id,
+        timestamp=datetime.datetime.utcnow(),
+        temperature=data.temperatura_agua_c,
+        dissolved_oxygen=data.oxigeno_disuelto_ppm,
+        ph=data.ph_agua,
+        turbidity=data.turbidez_ntu,
+        battery_level=data.bateria_porcentaje
+    )
+    
+    db.add(new_sensor_data)
+    db.commit()
+    return {"status": "success", "message": "Telemetría registrada"}

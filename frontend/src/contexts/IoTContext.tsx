@@ -8,8 +8,7 @@
 
 import React, { createContext, useContext } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useIoTConnection } from '@/hooks/useIoTconnection';
-import { IoTState } from '@/types/iot.types';
+import { useIoTConnection, IoTState } from '@/hooks/useIoTconnection';
 
 // ─── Configuración ────────────────────────────────────────────────────────────
 

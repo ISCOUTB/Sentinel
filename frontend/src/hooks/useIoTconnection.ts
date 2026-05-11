@@ -16,9 +16,13 @@ import {
   USVStatus,
   MisionData,
   LogEntry,
-  IoTState,
+  IoTState as BaseIoTState,
   IoTConnectionStatus,
 } from '@/types/iot.types';
+
+export interface IoTState extends BaseIoTState {
+  publish: (topic: string, payload: any) => Promise<void>;
+}
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 
@@ -39,6 +43,7 @@ const initialState: IoTState = {
   misionData: null,
   logs: [],
   error: null,
+  publish: async () => { console.warn('MQTT not connected yet'); },
 };
 
 function iotReducer(state: IoTState, action: IoTAction): IoTState {
@@ -151,5 +156,14 @@ export function useIoTConnection({ idToken, thingName }: UseIoTConnectionParams)
     };
   }, [idToken, thingName, handleMessage]);
 
-  return state;
+  const publish = useCallback(async (topic: string, payload: any) => {
+    if (connectionRef.current) {
+      const message = JSON.stringify(payload);
+      await connectionRef.current.publish(topic, message, mqtt.QoS.AtLeastOnce);
+    } else {
+      console.warn('[IoT] Cannot publish, no active connection');
+    }
+  }, []);
+
+  return { ...state, publish };
 }
