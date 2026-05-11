@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { User, Lock } from "lucide-react";
+import { User, Lock, Eye, EyeOff } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import logo from "@/assets/pngwing.com.png";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,6 +12,7 @@ const Login = () => {
   const { login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -48,7 +49,7 @@ const Login = () => {
     <div className="wrapper">
         <form onSubmit={handleSubmit}>
         <img src={logo} alt="Logo" className="login-logo" />
-        <h1>Login</h1>
+        <h1>Welcome to Sentinel</h1>
         {error && <p className="form-error">{error}</p>}
         <div className="input-group">
           <label>Email</label>
@@ -62,20 +63,28 @@ const Login = () => {
         </div>
         <div className="input-group">
           <label>Password</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+          <input 
+            type={showPassword ? "text" : "password"} 
+            value={password} 
+            onChange={(e) => setPassword(e.target.value)}
+            style={{ paddingRight: '3.5rem' }}
           />
-          <Lock className="icon" />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            style={{ position: 'absolute', right: '2.5rem', top: '2.2rem', background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'hsl(var(--muted))' }}
+          >
+            {showPassword ? <Eye size={20} /> : <EyeOff size={20} />}
+          </button>
+          <Lock className="icon" size={20} />
         </div>
         <button type="submit" className="button-primary" disabled={isLoading}>
           {isLoading ? "Iniciando sesión..." : "Login"}
         </button>
         <div className="register-link">
-          <p>
-            Don't have an account?{" "}
-            <span className="link" onClick={() => navigate("/register")}>
-              Register here
-            </span>
-          </p>
+          <a href="#" onClick={(e) => { e.preventDefault(); navigate("/register"); }}>
+            Don't have an account? Register here
+          </a>
         </div>
       </form>
     </div>

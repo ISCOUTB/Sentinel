@@ -54,7 +54,7 @@ const Register = () => {
 
 
       // Registrar usuario en Cognito (username = email)
-      await register(email, email, password);
+      await register(email, email, password, name, lastName);
 
       // Navegar a la pantalla de confirmación de email
       navigate("/confirm-email", { state: { email } });
@@ -67,7 +67,7 @@ const Register = () => {
     <div className="wrapper">
       <form onSubmit={handleSubmit}>
         <img src={logo} alt="Logo" className="login-logo" />
-        <h1>Register</h1>
+        <h1>Please register</h1>
         {error && <p className="form-error">{error}</p>}
         {success && <p className="form-success">{success}</p>}
         <div className="input-group">
@@ -91,9 +91,11 @@ const Register = () => {
           <input type="password" name="confirmPassword" onChange={handleChange} />
         </div>
         <button type="submit" className="button-primary">Register</button>
-        <p className="link" onClick={() => navigate("/")}>
-          Back to login
-        </p>
+        <div className="register-link">
+          <a href="#" onClick={(e) => { e.preventDefault(); navigate("/"); }}>
+            Back to login
+          </a>
+        </div>
       </form>
     </div>
   );
