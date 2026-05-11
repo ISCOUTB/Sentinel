@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte de Misión</title>
+    <style>
+        body { font-family: 'Helvetica', 'Arial', sans-serif; color: #333; line-height: 1.6; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        h2 { color: #2980b9; margin-top: 30px; }
+        .header { display: flex; justify-content: space-between; margin-bottom: 40px; }
+        .header div { margin: 0; }
+        .stats-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .stats-table th, .stats-table td { border: 1px solid #ddd; padding: 12px; text-align: center; }
+        .stats-table th { background-color: #f4f6f7; color: #333; font-weight: bold; }
+        .graph-container { margin-top: 20px; text-align: center; page-break-inside: avoid; }
+        .graph-container img { max-width: 100%; height: auto; border: 1px solid #eee; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .ai-analysis { background-color: #f8f9fa; border-left: 4px solid #3498db; padding: 20px; margin-top: 30px; border-radius: 0 8px 8px 0; }
+        .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #7f8c8d; border-top: 1px solid #ddd; padding-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>Reporte de Calidad de Agua Sentinel</h1>
+            <p><strong>Misión:</strong> {{ mission.name }} (ID: {{ mission.id }})</p>
+            <p><strong>Estado:</strong> {{ mission.status }}</p>
+            <p><strong>Inicio:</strong> {{ mission.start_time.strftime('%Y-%m-%d %H:%M') }}</p>
+            <p><strong>Fin:</strong> {{ mission.end_time.strftime('%Y-%m-%d %H:%M') if mission.end_time else 'En progreso' }}</p>
+        </div>
+        <div style="text-align: right;">
+            <p><strong>Fecha de Emisión:</strong><br>{{ date }}</p>
+        </div>
+    </div>
+
+    <h2>Análisis de Inteligencia Artificial</h2>
+    <div class="ai-analysis">
+        {{ ai_analysis | safe }}
+    </div>
+
+    <h2>Resumen Estadístico</h2>
+    <table class="stats-table">
+        <thead>
+            <tr>
+                <th>Parámetro</th>
+                <th>Mínimo</th>
+                <th>Máximo</th>
+                <th>Promedio</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Temperatura (°C)</td>
+                <td>{{ "%.2f"|format(stats.temperature.min) }}</td>
+                <td>{{ "%.2f"|format(stats.temperature.max) }}</td>
+                <td>{{ "%.2f"|format(stats.temperature.mean) }}</td>
+            </tr>
+            <tr>
+                <td>pH</td>
+                <td>{{ "%.2f"|format(stats.ph.min) }}</td>
+                <td>{{ "%.2f"|format(stats.ph.max) }}</td>
+                <td>{{ "%.2f"|format(stats.ph.mean) }}</td>
+            </tr>
+            <tr>
+                <td>Turbidez (NTU)</td>
+                <td>{{ "%.2f"|format(stats.turbidity.min) }}</td>
+                <td>{{ "%.2f"|format(stats.turbidity.max) }}</td>
+                <td>{{ "%.2f"|format(stats.turbidity.mean) }}</td>
+            </tr>
+            <tr>
+                <td>Oxígeno Disuelto (ppm)</td>
+                <td>{{ "%.2f"|format(stats.dissolved_oxygen.min) }}</td>
+                <td>{{ "%.2f"|format(stats.dissolved_oxygen.max) }}</td>
+                <td>{{ "%.2f"|format(stats.dissolved_oxygen.mean) }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div style="page-break-after: always;"></div>
+
+    <h2>Gráficos de Monitoreo</h2>
+    
+    {% if graphs.temperature %}
+    <div class="graph-container">
+        <img src="{{ graphs.temperature }}" alt="Gráfico de Temperatura">
+    </div>
+    {% endif %}
+
+    {% if graphs.ph %}
+    <div class="graph-container">
+        <img src="{{ graphs.ph }}" alt="Gráfico de pH">
+    </div>
+    {% endif %}
+
+    {% if graphs.turbidity %}
+    <div class="graph-container">
+        <img src="{{ graphs.turbidity }}" alt="Gráfico de Turbidez">
+    </div>
+    {% endif %}
+
+    {% if graphs.dissolved_oxygen %}
+    <div class="graph-container">
+        <img src="{{ graphs.dissolved_oxygen }}" alt="Gráfico de Oxígeno Disuelto">
+    </div>
+    {% endif %}
+
+    <div class="footer">
+        Reporte generado automáticamente por Sentinel HMI & AI Analysis Engine.
+    </div>
+</body>
+</html>

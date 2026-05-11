@@ -7,6 +7,7 @@ from app.config import settings
 from app.database import create_tables
 from app.routers.auth import router as auth_router
 from app.routers.data import router as data_router
+from app.routers.reports import router as reports_router
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -55,6 +56,12 @@ app.include_router(
     data_router,
     prefix=settings.API_V1_STR,
     tags=["data"],
+)
+
+app.include_router(
+    reports_router,
+    prefix=settings.API_V1_STR,
+    tags=["reports"],
 )
 
 @app.get("/")
