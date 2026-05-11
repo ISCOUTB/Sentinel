@@ -33,7 +33,7 @@ class CognitoAuthService {
   /**
    * Registra un nuevo usuario en Cognito
    */
-  async register(username: string, email: string, password: string): Promise<void> {
+  async register(username: string, email: string, password: string, name?: string, lastName?: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const userPool = this.getUserPool();
       const attributeList = [
@@ -42,6 +42,13 @@ class CognitoAuthService {
           Value: email,
         }),
       ];
+
+      if (name) {
+        attributeList.push(new CognitoUserAttribute({ Name: 'given_name', Value: name }));
+      }
+      if (lastName) {
+        attributeList.push(new CognitoUserAttribute({ Name: 'family_name', Value: lastName }));
+      }
 
       userPool.signUp(username, password, attributeList, [], (err, result) => {
         if (err) {
