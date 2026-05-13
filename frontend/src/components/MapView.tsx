@@ -272,8 +272,8 @@ export default function MapView({
       
       {/* ── Overlay Distancia Total ── */}
       {missionPoints.length > 1 && (
-        <div className="absolute top-4 right-4 z-[400] pointer-events-none">
-          <div className="bg-blue-600/90 backdrop-blur-sm text-white px-4 py-2 rounded-full shadow-lg font-bold border border-blue-400">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[10] pointer-events-none">
+          <div className="bg-blue-600/90 backdrop-blur-sm text-white px-6 py-2 rounded-full shadow-lg font-bold border-2 border-white/50">
             Distancia Total: {totalDistance.toFixed(0)} m
           </div>
         </div>

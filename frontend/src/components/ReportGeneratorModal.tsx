@@ -12,8 +12,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { dataAPI } from '@/api/gateway';
 import { FileText } from 'lucide-react';
 
-export default function ReportGeneratorModal() {
-  const [isOpen, setIsOpen] = useState(false);
+interface ReportGeneratorModalProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  trigger?: React.ReactNode;
+}
+
+export default function ReportGeneratorModal({ open, onOpenChange, trigger }: ReportGeneratorModalProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  
+  const isOpen = open !== undefined ? open : internalOpen;
+  const setIsOpen = onOpenChange !== undefined ? onOpenChange : setInternalOpen;
   const [loading, setLoading] = useState(false);
   const [loadingMissions, setLoadingMissions] = useState(false);
   const [error, setError] = useState('');
@@ -80,11 +89,17 @@ export default function ReportGeneratorModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="default" className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm flex items-center gap-2">
-          <FileText className="w-4 h-4" /> Generar Reporte IA
-        </Button>
-      </DialogTrigger>
+      {trigger ? (
+        <DialogTrigger asChild>
+          {trigger}
+        </DialogTrigger>
+      ) : (
+        <DialogTrigger asChild>
+          <Button variant="default" className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm flex items-center gap-2">
+            <FileText className="w-4 h-4" /> Generar Reporte IA
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Generador de Reportes con IA</DialogTitle>

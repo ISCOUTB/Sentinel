@@ -6,8 +6,15 @@ import StatusBar from '@/components/StatusBar';
 import AlertNotification from '@/components/AlertNotification';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Trash2, MapPin, Play, Square } from "lucide-react";
+import { Trash2, MapPin, Play, Square, Power, ChevronDown, FileText } from "lucide-react";
 import ReportGeneratorModal from '@/components/ReportGeneratorModal';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
 import { dataAPI } from '@/api/gateway';
 import { toast } from 'sonner';
 import { useIoTData } from '@/contexts/IoTContext';
@@ -17,26 +24,36 @@ const Index = () => {
   const { logout, user, accessToken, fullName, username } = useAuth();
   const { publish } = useIoTData();
 
-  // Guardamos el tiempo transcurrido en segundos
+  // Guardamos el tiempo transcurrido en segundos y el momento de inicio de misión
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [missionStartTime, setMissionStartTime] = useState<number | null>(null);
 
   // Mission Points State
   const [missionPoints, setMissionPoints] = useState<MissionPoint[]>([]);
   const [isSelectingPoints, setIsSelectingPoints] = useState(false);
   const [activeMissionId, setActiveMissionId] = useState<string | null>(null);
+  const [isMissionPaused, setIsMissionPaused] = useState(false);
   const [loadingMission, setLoadingMission] = useState(false);
 
   useEffect(() => {
-    const startTime = Date.now(); // Marca el momento en que se abre el HMI
+    let timer: any;
+    
+    if (activeMissionId && missionStartTime && !isMissionPaused) {
+      timer = setInterval(() => {
+        const now = Date.now();
+        const seconds = Math.floor((now - missionStartTime) / 1000);
+        setElapsedTime(seconds);
+      }, 1000);
+    } else if (!activeMissionId) {
+      setElapsedTime(0);
+      setMissionStartTime(null);
+      setIsMissionPaused(false);
+    }
 
-    const timer = setInterval(() => {
-      const now = Date.now();
-      const seconds = Math.floor((now - startTime) / 1000);
-      setElapsedTime(seconds);
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [activeMissionId, missionStartTime]);
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('es-ES', {
@@ -65,12 +82,12 @@ const Index = () => {
     setMissionPoints(prev => [...prev, { lat, lng }]);
   };
 
-  const clearPoints = () => {
+  const removeLastPoint = () => {
     if (activeMissionId) {
-      toast.error('No puedes limpiar los puntos mientras la misión está en progreso.');
+      toast.error('No puedes modificar los puntos mientras la misión está en progreso.');
       return;
     }
-    setMissionPoints([]);
+    setMissionPoints(prev => prev.slice(0, -1));
   };
 
   const handleStartMission = async () => {
@@ -84,6 +101,7 @@ const Index = () => {
       const missionName = `Misión HMI ${formatDate(new Date())}`;
       const response = await dataAPI.createMission(missionName, missionPoints, accessToken!);
       setActiveMissionId(response.id);
+      setMissionStartTime(Date.now());
       setIsSelectingPoints(false);
       
       toast.success('Misión iniciada. El sistema guardará la telemetría y el vehículo se pondrá en marcha.');
@@ -102,6 +120,7 @@ const Index = () => {
     try {
       await dataAPI.finishMission(activeMissionId, accessToken!);
       setActiveMissionId(null);
+      setIsMissionPaused(false);
       toast.success('Misión finalizada correctamente.');
     } catch (err) {
       console.error(err);
@@ -111,56 +130,108 @@ const Index = () => {
     }
   };
 
+  const handlePauseMission = async () => {
+    if (!activeMissionId) return;
+    setLoadingMission(true);
+    try {
+      await dataAPI.pauseMission(activeMissionId, accessToken!);
+      setIsMissionPaused(true);
+      toast.info('Misión pausada.');
+    } catch (err) {
+      console.error(err);
+      toast.error('Error al pausar la misión');
+    } finally {
+      setLoadingMission(false);
+    }
+  };
+
+  const handleResumeMission = async () => {
+    if (!activeMissionId) return;
+    setLoadingMission(true);
+    try {
+      await dataAPI.resumeMission(activeMissionId, accessToken!);
+      setIsMissionPaused(false);
+      toast.success('Misión reanudada.');
+    } catch (err) {
+      console.error(err);
+      toast.error('Error al reanudar la misión');
+    } finally {
+      setLoadingMission(false);
+    }
+  };
+
   return (
-    <div className="h-screen bg-background text-foreground p-4 flex flex-col overflow-hidden">
+    <div className="h-screen bg-background text-foreground p-6 flex flex-col overflow-hidden">
       <div className="max-w-[1920px] mx-auto w-full h-full flex flex-col">
         {/* Header */}
-        <header className="flex justify-between items-center mb-4 flex-shrink-0">
+        <header className="flex justify-between items-center mb-2 flex-shrink-0">
           <h1 className="text-2xl font-bold">
             Sistema de Monitoreo de Aguas
           </h1>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6">
             <div className="text-right">
-              <p className="text-xs text-muted-foreground">
-                Usuario: {fullName || username || user?.username || 'Cargando...'}
+              <p className="text-sm font-medium">
+                {fullName || username || user?.username || 'Cargando...'}
               </p>
               <p className="text-xs text-muted-foreground">
                 {formatDate(new Date())}
               </p>
-              <p className="text-sm font-semibold">
-                Tiempo de actividad:{' '}
-                <span className="font-mono text-primary">
-                  {formatElapsed(elapsedTime)}
-                </span>
-              </p>
             </div>
-            <ReportGeneratorModal />
-            <Button onClick={handleLogout} variant="outline">
-              Cerrar Sesión
+            <Button 
+              onClick={handleLogout} 
+              variant="ghost" 
+              size="icon"
+              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+              title="Cerrar Sesión"
+            >
+              <Power className="w-6 h-6" />
             </Button>
           </div>
         </header>
+
+        <Separator className="bg-gray-200 mb-6" />
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 overflow-hidden">
           {/* Map Section - Takes 2 columns */}
           <div className="lg:col-span-2 flex flex-col gap-4 overflow-hidden">
             {/* Header for Map */}
-            <div className="flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center justify-between flex-shrink-0 px-2">
               <div className="flex items-center gap-4">
-                <h2 className="text-xl font-bold">Mapa</h2>
-                <Button 
-                  variant={isSelectingPoints ? "default" : "secondary"} 
-                  size="sm"
-                  onClick={() => setIsSelectingPoints(!isSelectingPoints)}
-                  disabled={activeMissionId !== null}
-                >
-                  <MapPin className="w-4 h-4 mr-2" />
-                  {isSelectingPoints ? "Terminar Edición" : "Definir puntos de la mision"}
-                </Button>
-                {missionPoints.length > 0 && (
-                  <Button variant="destructive" size="sm" onClick={clearPoints} disabled={activeMissionId !== null}>
-                    <Trash2 className="w-4 h-4 mr-2" /> Limpiar Puntos
+                <p className="text-sm font-semibold">
+                  Tiempo de actividad:{' '}
+                  <span className="font-mono text-primary">
+                    {formatElapsed(elapsedTime)}
+                  </span>
+                </p>
+                
+                {/* Botón para alternar edición */}
+                {isSelectingPoints ? (
+                  <Button 
+                    variant="default" 
+                    size="sm"
+                    onClick={() => setIsSelectingPoints(false)}
+                    className="bg-blue-600"
+                  >
+                    Definir ruta
+                  </Button>
+                ) : (
+                  /* Mostrar "Volver a ruta" si hay puntos pero no ha iniciado misión */
+                  missionPoints.length > 0 && !activeMissionId && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => setIsSelectingPoints(true)}
+                    >
+                      Volver a ruta
+                    </Button>
+                  )
+                )}
+                
+                {/* Quitar último punto solo si está editando */}
+                {isSelectingPoints && missionPoints.length > 0 && (
+                  <Button variant="destructive" size="sm" onClick={removeLastPoint}>
+                    <Trash2 className="w-4 h-4 mr-1" /> Quitar último punto
                   </Button>
                 )}
                 
@@ -177,25 +248,78 @@ const Index = () => {
                 )}
 
                 {activeMissionId && (
-                  <Button 
-                    variant="default" 
-                    size="sm" 
-                    className="bg-red-600 hover:bg-red-700 text-white animate-pulse"
-                    onClick={handleFinishMission}
-                    disabled={loadingMission}
-                  >
-                    <Square className="w-4 h-4 mr-2" /> Finalizar Misión
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {isMissionPaused ? (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="bg-amber-500 hover:bg-amber-600 text-white border-none"
+                        onClick={handleResumeMission}
+                        disabled={loadingMission}
+                      >
+                        <Play className="w-4 h-4 mr-2" /> Reanudar misión
+                      </Button>
+                    ) : (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="bg-amber-500 hover:bg-amber-600 text-white border-none"
+                        onClick={handlePauseMission}
+                        disabled={loadingMission}
+                      >
+                        <Play className="w-4 h-4 mr-2" /> Pausar misión
+                      </Button>
+                    )}
+                    
+                    <Button 
+                      variant="default" 
+                      size="sm" 
+                      className="bg-red-600 hover:bg-red-700 text-white animate-pulse"
+                      onClick={handleFinishMission}
+                      disabled={loadingMission}
+                    >
+                      <Square className="w-4 h-4 mr-2" /> Finalizar Misión
+                    </Button>
+                  </div>
                 )}
               </div>
-              {isSelectingPoints && (
-                <span className="text-sm text-primary font-semibold animate-pulse">
-                  Haz clic en el mapa para añadir puntos
-                </span>
-              )}
+
+              <div className="flex items-center gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="flex items-center gap-2">
+                      Acciones de Misión <ChevronDown className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem 
+                      onClick={() => setIsSelectingPoints(true)}
+                      disabled={activeMissionId !== null || isSelectingPoints}
+                    >
+                      <MapPin className="w-4 h-4 mr-2" /> Iniciar nueva misión
+                    </DropdownMenuItem>
+                    <ReportGeneratorModal 
+                      trigger={
+                        <div className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
+                          <FileText className="w-4 h-4 mr-2" /> Generar Reporte (IA)
+                        </div>
+                      }
+                    />
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
 
             <div className={`relative flex-1 min-h-0 border rounded-xl overflow-hidden shadow-sm ${isSelectingPoints ? 'cursor-crosshair' : ''}`}>
+              {isSelectingPoints && (
+                <div className="absolute top-4 right-4 z-[450] pointer-events-none animate-in fade-in zoom-in duration-300">
+                  <div className="bg-blue-600 text-white px-6 py-3 rounded-lg shadow-2xl font-bold border-2 border-white flex items-center gap-3 animate-pulse">
+                    <MapPin className="w-5 h-5" />
+                    <span>Modo Edición: Haz clic en el mapa para añadir puntos</span>
+                  </div>
+                </div>
+              )}
+              
               <MapView 
                 missionPoints={missionPoints} 
                 isSelectingPoints={isSelectingPoints}

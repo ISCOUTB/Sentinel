@@ -228,6 +228,32 @@ export const dataAPI = {
   },
 
   /**
+   * Pausa una misión
+   */
+  pauseMission: async (missionId: string, accessToken: string) => {
+    return apiRequest<any>(
+      `/data/missions/${missionId}/pause`,
+      {
+        method: 'PATCH',
+      },
+      accessToken
+    );
+  },
+
+  /**
+   * Reanuda una misión
+   */
+  resumeMission: async (missionId: string, accessToken: string) => {
+    return apiRequest<any>(
+      `/data/missions/${missionId}/resume`,
+      {
+        method: 'PATCH',
+      },
+      accessToken
+    );
+  },
+
+  /**
    * Genera un reporte PDF con IA
    */
   generateReport: async (missionId: string, accessToken: string) => {

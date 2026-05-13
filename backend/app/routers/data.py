@@ -176,6 +176,34 @@ def finish_mission(mission_id: str, db: Session = Depends(get_db), current_user 
     db.refresh(mission)
     return mission
 
+@router.patch("/missions/{mission_id}/pause", response_model=MissionResponse)
+def pause_mission(mission_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    """
+    Pausar una misión en progreso.
+    """
+    mission = db.query(Mission).filter(Mission.id == mission_id).first()
+    if not mission:
+        raise HTTPException(status_code=404, detail="Misión no encontrada")
+    
+    mission.status = "PAUSADO"
+    db.commit()
+    db.refresh(mission)
+    return mission
+
+@router.patch("/missions/{mission_id}/resume", response_model=MissionResponse)
+def resume_mission(mission_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    """
+    Reanudar una misión pausada.
+    """
+    mission = db.query(Mission).filter(Mission.id == mission_id).first()
+    if not mission:
+        raise HTTPException(status_code=404, detail="Misión no encontrada")
+    
+    mission.status = "EN_PROGRESO"
+    db.commit()
+    db.refresh(mission)
+    return mission
+
 @router.post("/telemetry")
 def ingest_telemetry(data: TelemetryData, db: Session = Depends(get_db)):
     """
