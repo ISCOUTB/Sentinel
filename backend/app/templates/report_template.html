@@ -22,13 +22,13 @@
     <div class="header">
         <div>
             <h1>Reporte de Calidad de Agua Sentinel</h1>
-            <p><strong>Misión:</strong> {{ mission.name }} (ID: {{ mission.id }})</p>
+            <p><strong>Misión:</strong> {{ mission_seq_name }} {{ mission.name }} (ID: {{ mission.id }})</p>
             <p><strong>Estado:</strong> {{ mission.status.replace('_', ' ') }}</p>
-            <p><strong>Inicio:</strong> {{ mission.start_time.strftime('%Y-%m-%d %H:%M:%S') }}</p>
-            <p><strong>Fin:</strong> {{ mission.end_time.strftime('%Y-%m-%d %H:%M:%S') if mission.end_time else 'En progreso' }}</p>
+            <p><strong>Inicio:</strong> {{ start_time_bog.strftime('%Y-%m-%d %H:%M:%S') if start_time_bog else 'N/A' }}</p>
+            <p><strong>Fin:</strong> {{ end_time_bog.strftime('%Y-%m-%d %H:%M:%S') if end_time_bog else 'En progreso' }}</p>
         </div>
         <div style="text-align: right;">
-            <p><strong>Fecha de Emisión:</strong><br>{{ date }}</p>
+            <p><strong>Fecha de Emisión:</strong><br>{{ date_bog }}<br>({{ time_bog }})</p>
         </div>
     </div>
 
@@ -89,8 +89,6 @@
     <div class="graph-container">
         <img src="{{ graphs.turbidity }}" alt="Gráfico de Turbidez">
     </div>
-    {% endif %}
-
     {% endif %}
 
     <div class="footer">

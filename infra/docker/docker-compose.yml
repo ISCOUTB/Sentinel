@@ -25,8 +25,17 @@ services:
       COGNITO_REGION: ${TF_VAR_region_sentinel:-us-east-1}
       COGNITO_USER_POOL_ID: ${TF_VAR_user_pool_id:-us-east-1_PfMPPwYKa}
       COGNITO_APP_CLIENT_ID: ${TF_VAR_user_pool_client_id:-2i6r6a7hi79epi20b5uedgeo1e}
+      AWS_ACCESS_KEY_ID: ${TF_VAR_my_access_key}
+      AWS_SECRET_ACCESS_KEY: ${TF_VAR_my_secret_key}
+      AWS_REGION: ${TF_VAR_region_sentinel:-us-east-1}
+      IOT_ENDPOINT: ${TF_VAR_iot_endpoint}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      INFLUXDB_URL: http://sentinel-influxdb:8086
     env_file:
       - ../../backend/.env
+    networks:
+      - default
+      - iot-network
     depends_on:
       - db
     command:
@@ -55,3 +64,10 @@ services:
 volumes:
   db_data:
   frontend_node_modules:
+
+networks:
+  default:
+    name: docker_default
+  iot-network:
+    external: true
+    name: iot-influx-bridge_default

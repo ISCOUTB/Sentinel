@@ -75,22 +75,46 @@ def user_data(user=Depends(require_user)):
         "roles": user["roles"]
     }
 
+def utc_to_bogota(utc_dt):
+    """Convierte datetime de UTC a Bogotá (UTC-5) manualmente."""
+    if not utc_dt:
+        return None
+    return utc_dt - datetime.timedelta(hours=5)
+
 @router.get("/missions")
 def get_missions(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     """
-    Obtener lista de misiones disponibles.
+    Obtener lista de misiones disponibles con nombre limpio, número de secuencia y hora local.
     """
-    missions = db.query(Mission).order_by(Mission.start_time.desc()).all()
-    return [
-        {
+    import re
+    # Obtener todas las misiones ordenadas por fecha para calcular el número de secuencia
+    all_missions = db.query(Mission).order_by(Mission.start_time.asc()).all()
+    
+    result = []
+    for i, m in enumerate(all_missions):
+        start_time_bog = utc_to_bogota(m.start_time)
+        time_str = start_time_bog.strftime('%H:%M:%S') if start_time_bog else "N/A"
+        
+        # Limpiar el nombre original (quitar fecha entre paréntesis y estados previos si existen)
+        raw_name = m.name or ""
+        # Quita patrones como "(12/5/2026)", "(12/05/2026)" y lo que siga (como " - FINALIZADO")
+        clean_name = re.sub(r'\s*\(\d{1,2}/\d{1,2}/\d{4}\).*$', '', raw_name).strip()
+        
+        # Evitar repetir la palabra "Misión" al inicio
+        clean_name = re.sub(r'^Misión\s*\d*\s*', '', clean_name).strip()
+            
+        display_name = f"Misión {i+1} {clean_name} ({time_str})"
+            
+        result.append({
             "id": m.id,
-            "name": m.name or f"Misión {m.id}",
+            "name": f"{display_name} - {m.status.replace('_', ' ')}",
             "status": m.status,
             "start_time": m.start_time,
             "end_time": m.end_time
-        }
-        for m in missions
-    ]
+        })
+        
+    # Devolver invertido (más reciente primero) para la UI
+    return result[::-1]
 
 @router.post("/missions", response_model=MissionResponse)
 def create_mission(mission_in: MissionCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
@@ -110,10 +134,14 @@ def create_mission(mission_in: MissionCreate, db: Session = Depends(get_db), cur
     # Publicar los waypoints en AWS IoT Core
     if mission_in.points:
         try:
+            endpoint = settings.IOT_ENDPOINT
+            if endpoint and not endpoint.startswith("https://"):
+                endpoint = f"https://{endpoint}"
+                
             iot_client = boto3.client(
                 'iot-data', 
                 region_name=settings.COGNITO_REGION, 
-                endpoint_url=settings.IOT_ENDPOINT,
+                endpoint_url=endpoint,
                 aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
                 aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
             )

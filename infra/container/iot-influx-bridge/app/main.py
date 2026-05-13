@@ -256,12 +256,9 @@ def collect_scalar_fields(prefix: str, value: object, fields: list[str]) -> None
         fields.append(f"{prefix}={'true' if value else 'false'}")
         return
 
-    if isinstance(value, int):
-        fields.append(f"{prefix}={value}i")
-        return
-
-    if isinstance(value, float):
-        fields.append(f"{prefix}={value}")
+    # Forzar todos los números a float para evitar conflictos de tipos en InfluxDB
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        fields.append(f"{prefix}={float(value)}")
         return
 
     if isinstance(value, str):
@@ -283,7 +280,7 @@ def collect_scalar_fields(prefix: str, value: object, fields: list[str]) -> None
 
 
 def build_line_protocol(payload: Dict[str, object]) -> Optional[str]:
-    measurement = "iot_telemetry"
+    measurement = "usv_telemetry"
     device_id = str(
         payload.get("device_id")
         or payload.get("clientId")
@@ -291,11 +288,18 @@ def build_line_protocol(payload: Dict[str, object]) -> Optional[str]:
         or "unknown_device"
     )
 
-    tags_str = f"device_id={escape_tag_value(device_id)}"
+    tags = [f"device_id={escape_tag_value(device_id)}"]
+    
+    # Si viene mission_id, lo ponemos como tag para búsquedas rápidas
+    mission_id = payload.get("mission_id")
+    if mission_id:
+        tags.append(f"mission_id={escape_tag_value(str(mission_id))}")
+
+    tags_str = ",".join(tags)
 
     fields = []
     for key, value in payload.items():
-        if key in {"device_id", "clientId", "thingname", "timestamp", "influx_bucket"}:
+        if key in {"device_id", "clientId", "thingname", "timestamp", "influx_bucket", "mission_id"}:
             continue
 
         collect_scalar_fields(key, value, fields)
@@ -357,6 +361,7 @@ def on_message(client: mqtt.Client, _userdata, msg: mqtt.MQTTMessage) -> None:
             cfg.influxdb_password,
             line_protocol,
         )
+        print(f"[DEBUG] Writing to Influx: {line_protocol}")
         print(f"[OK] {msg.topic} -> bucket={bucket}")
     except Exception as exc:
         print(f"[ERROR] Failed to write message from {msg.topic}: {exc}")

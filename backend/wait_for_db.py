@@ -4,13 +4,46 @@ import pymysql
 import os
 
 def wait_for_db():
-    db_config = {
-        'host': os.getenv('DB_HOST', 'db'),
-        'user': os.getenv('DB_USER', 'usv_user'),
-        'password': os.getenv('DB_PASSWORD', 'usv_password'),
-        'database': os.getenv('DB_NAME', 'usv_hmi'),
-        'port': int(os.getenv('DB_PORT', 3306))
-    }
+    database_url = os.getenv('DATABASE_URL')
+    if database_url and "://" in database_url:
+        try:
+            # Parse format: mysql+pymysql://user:password@host:port/dbname
+            # Remove the protocol part
+            url_part = database_url.split("://")[1]
+            # Split credentials and host/db
+            creds, rest = url_part.split("@")
+            user, password = creds.split(":")
+            # Split host:port and dbname
+            host_port, dbname = rest.split("/")
+            if ":" in host_port:
+                host, port = host_port.split(":")
+            else:
+                host, port = host_port, 3306
+            
+            db_config = {
+                'host': host,
+                'user': user,
+                'password': password,
+                'database': dbname,
+                'port': int(port)
+            }
+        except Exception as e:
+            print(f"Error parsing DATABASE_URL, falling back to separate env vars: {e}")
+            db_config = {
+                'host': os.getenv('DB_HOST', 'db'),
+                'user': os.getenv('DB_USER', 'usv_user'),
+                'password': os.getenv('DB_PASSWORD', 'usv_password'),
+                'database': os.getenv('DB_NAME', 'usv_hmi'),
+                'port': int(os.getenv('DB_PORT', 3306))
+            }
+    else:
+        db_config = {
+            'host': os.getenv('DB_HOST', 'db'),
+            'user': os.getenv('DB_USER', 'usv_user'),
+            'password': os.getenv('DB_PASSWORD', 'usv_password'),
+            'database': os.getenv('DB_NAME', 'usv_hmi'),
+            'port': int(os.getenv('DB_PORT', 3306))
+        }
 
     max_attempts = 30
     for attempt in range(max_attempts):

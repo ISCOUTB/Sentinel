@@ -108,7 +108,7 @@ export default function ReportGeneratorModal() {
               >
                 {missions.map((m) => (
                   <option key={m.id} value={m.id} disabled={m.status !== 'FINALIZADO'}>
-                    {m.name} ({new Date(m.start_time).toLocaleDateString()}) - {m.status}
+                    {m.name}
                   </option>
                 ))}
               </select>

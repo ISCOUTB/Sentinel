@@ -231,6 +231,7 @@ setInterval(async () => {
     temperatura_agua_c: round(state.temperatura, 2),
     ph_agua: round(state.ph, 3),
     turbidez_ntu: round(state.turbidez, 2),
+    oxigeno_disuelto_ppm: 8.3, // Valor por defecto o dinámico
     mission_id: state.active_mission_id || "sin_mision",
     timestamp_utc,
   };
