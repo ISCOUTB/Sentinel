@@ -133,19 +133,50 @@ def publish_mission_command(command: str, mission_id: str, points: List = None):
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
         )
         topic = f"{settings.IOT_THING_NAME}/orders"
+        hw_cmd = command
+        if command == "FINISH":
+            hw_cmd = "CANCEL"
+
+        if command == "START" and points:
+            # 1. Enviar PREPARE
+            prepare_payload = {
+                "cmd": "PREPARE",
+                "mission_id": mission_id
+            }
+            iot_client.publish(
+                topic=topic,
+                qos=1,
+                payload=json.dumps(prepare_payload)
+            )
+            print(f"MQTT Publish: PREPARE for mission {mission_id} on topic {topic}")
+
+            # 2. Enviar SET_COORDS
+            set_coords_payload = {
+                "cmd": "SET_COORDS",
+                "payload": {
+                    "waypoints": [{"lat": p.lat, "lon": p.lng, "alt": 0.5} for p in points],
+                    "radius_m": 3.0
+                },
+                "mission_id": mission_id
+            }
+            iot_client.publish(
+                topic=topic,
+                qos=1,
+                payload=json.dumps(set_coords_payload)
+            )
+            print(f"MQTT Publish: SET_COORDS for mission {mission_id} on topic {topic}")
+            
         payload = {
-            "command": command,
+            "cmd": hw_cmd,
             "mission_id": mission_id,
         }
-        if points:
-            payload["points"] = [{"lat": p.lat, "lng": p.lng} for p in points]
             
         iot_client.publish(
             topic=topic,
             qos=1,
             payload=json.dumps(payload)
         )
-        print(f"MQTT Publish: {command} for mission {mission_id} on topic {topic}")
+        print(f"MQTT Publish: {hw_cmd} for mission {mission_id} on topic {topic}")
     except Exception as e:
         print(f"Error publishing to IoT Core ({command}): {e}")
 

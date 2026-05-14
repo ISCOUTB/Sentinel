@@ -1,7 +1,7 @@
 import "leaflet";
 // src/components/MapView.tsx
 import React, { useEffect, useRef, useState, Suspense } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, Polyline } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -109,10 +109,10 @@ function checkWaterColor(lat: number, lng: number, zoom: number): Promise<boolea
     // 1. Matemáticas para convertir lat/lng a coordenadas de Tile de OSM
     const x = (lng + 180) / 360 * Math.pow(2, zoom);
     const y = (1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, zoom);
-    
+
     const tileX = Math.floor(x);
     const tileY = Math.floor(y);
-    
+
     // 2. Píxel exacto dentro del tile de 256x256
     const pixelX = Math.floor((x - tileX) * 256);
     const pixelY = Math.floor((y - tileY) * 256);
@@ -132,7 +132,7 @@ function checkWaterColor(lat: number, lng: number, zoom: number): Promise<boolea
         return;
       }
       ctx.drawImage(img, 0, 0);
-      
+
       // 4. Obtener el color del píxel clickeado
       const pixel = ctx.getImageData(pixelX, pixelY, 1, 1).data;
       const r = pixel[0];
@@ -142,9 +142,9 @@ function checkWaterColor(lat: number, lng: number, zoom: number): Promise<boolea
       // 5. Validar si el color corresponde a los tonos de agua de OSM
       // El agua en OSM típicamente es R:170, G:211, B:223 (varía un poco según la capa)
       // Ajuste de tolerancias:
-      const isWater = r >= 150 && r <= 190 && 
-                      g >= 190 && g <= 230 && 
-                      b >= 200 && b <= 245;
+      const isWater = r >= 150 && r <= 190 &&
+        g >= 190 && g <= 230 &&
+        b >= 200 && b <= 245;
 
       resolve(isWater);
     };
@@ -157,18 +157,18 @@ function checkWaterColor(lat: number, lng: number, zoom: number): Promise<boolea
 }
 
 // ─── Componente para manejar clicks en el mapa ───────────────────────────────
-function MapClickHandler({ 
-  isSelectingPoints, 
-  onAddPoint 
-}: { 
-  isSelectingPoints: boolean; 
+function MapClickHandler({
+  isSelectingPoints,
+  onAddPoint
+}: {
+  isSelectingPoints: boolean;
   onAddPoint?: (lat: number, lng: number) => void;
 }) {
   const map = useMapEvents({
     async click(e) {
       if (isSelectingPoints && onAddPoint) {
         const zoom = map.getZoom();
-        
+
         // Ejecutamos la validación visual de color
         const isWater = await checkWaterColor(e.latlng.lat, e.latlng.lng, zoom);
 
@@ -191,10 +191,10 @@ interface MapViewProps {
   onAddPoint?: (lat: number, lng: number) => void;
 }
 
-export default function MapView({ 
-  missionPoints = [], 
+export default function MapView({
+  missionPoints = [],
   isSelectingPoints = false,
-  onAddPoint 
+  onAddPoint
 }: MapViewProps) {
   const mapRef = useRef<any | null>(null);
   const [totalDistance, setTotalDistance] = useState(0);
@@ -209,9 +209,9 @@ export default function MapView({
     ? { lat: usvStatus.latitud, lng: usvStatus.longitud }
     : BASE_COORDS;
 
-  const location = usvStatus
-    ? `${usvStatus.usv_id ?? 'USV'} — ${(usvStatus.actividad ?? 'EN_ESPERA').replace(/_/g, ' ')}`
-    : 'Cartagena, Colombia';
+  const popupText = usvStatus
+    ? `${usvStatus.usv_id} — ${usvStatus.actividad?.replace(/_/g, ' ') || 'N/A'}`
+    : 'USV Desconectado';
 
   const yaw = isValidCoord(usvStatus?.yaw_grados) ? usvStatus!.yaw_grados : 0;
   const roll = isValidCoord(usvStatus?.roll_grados) ? usvStatus!.roll_grados : 0;
@@ -259,26 +259,26 @@ export default function MapView({
       {/* ── Overlay 2D info ── */}
       <div className="absolute top-4 left-4 z-[400] pointer-events-none flex flex-col gap-2">
         <div className="bg-black/70 backdrop-blur-sm text-white p-3 rounded-md shadow-lg">
-          <div className="font-semibold">📍 {location}</div>
-          <div className="text-xs text-gray-200">
-            Lat: {isValidCoord(coordinates.lat) ? coordinates.lat.toFixed(5) : '0.00000'}, 
-            Lng: {isValidCoord(coordinates.lng) ? coordinates.lng.toFixed(5) : '0.00000'}
+          <div className="font-semibold">📍 {popupText}</div>
+          <div className="text-xs text-slate-200 font-mono mt-1">
+            Lat: {coordinates.lat?.toFixed(5) ?? 0}, Lng: {coordinates.lng?.toFixed(5) ?? 0}
           </div>
           {usvStatus && (
-            <div className="text-xs text-gray-300 mt-1">
-              Roll: {isValidCoord(roll) ? roll.toFixed(1) : '0.0'}° · 
-              Pitch: {isValidCoord(pitch) ? pitch.toFixed(1) : '0.0'}° · 
-              Yaw: {isValidCoord(yaw) ? yaw.toFixed(1) : '0.0'}°
+            <div className="text-xs text-slate-300 font-mono mt-1">
+              Roll: {usvStatus.roll_grados?.toFixed(1) ?? 0}° · Pitch: {usvStatus.pitch_grados?.toFixed(1) ?? 0}° · Yaw: {usvStatus.yaw_grados?.toFixed(1) ?? 0}°
             </div>
           )}
         </div>
       </div>
-      
+
       {/* ── Overlay Distancia Total ── */}
       {missionPoints.length > 1 && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[10] pointer-events-none">
-          <div className="bg-blue-600/90 backdrop-blur-sm text-white px-6 py-2 rounded-full shadow-lg font-bold border-2 border-white/50">
-            Distancia Total: {totalDistance.toFixed(0)} m
+          <div className="bg-blue-600/90 backdrop-blur-sm text-white px-6 py-2 rounded-full shadow-lg font-bold border-2 border-white/50 flex items-center justify-between text-sm">
+            <span>Ruta ({missionPoints.length} puntos)</span>
+            <span className="font-mono text-blue-100 ml-2">
+              Distancia Total: {totalDistance?.toFixed(0) ?? 0} m
+            </span>
           </div>
         </div>
       )}
@@ -293,7 +293,7 @@ export default function MapView({
           scrollWheelZoom={true}
         >
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-          
+
           <MapClickHandler isSelectingPoints={isSelectingPoints} onAddPoint={onAddPoint} />
 
           {/* Marcador de posición real del USV */}
@@ -303,15 +303,26 @@ export default function MapView({
               icon={defaultIcon}
             >
               <Popup>
-                <strong>{usvStatus.usv_id ?? 'USV'}</strong>
-                <br />
-                Lat: {usvStatus.latitud.toFixed(5)}
-                <br />
-                Lng: {usvStatus.longitud.toFixed(5)}
-                <br />
-                Yaw: {isValidCoord(usvStatus.yaw_grados) ? usvStatus.yaw_grados.toFixed(1) : '0.0'}°
+                <div className="text-xs font-mono text-muted-foreground flex flex-col gap-1">
+                  <span>Lat: {usvStatus.latitud?.toFixed(5) ?? 0}</span>
+                  <span>Lng: {usvStatus.longitud?.toFixed(5) ?? 0}</span>
+                  <span>Yaw: {usvStatus.yaw_grados?.toFixed(1) ?? 0}°</span>
+                </div>
               </Popup>
             </Marker>
+          )}
+
+          {/* Línea punteada desde el USV al primer punto de la misión */}
+          {missionPoints.length > 0 && isValidCoord(coordinates.lat) && isValidCoord(coordinates.lng) && (
+            <Polyline
+              positions={[
+                [coordinates.lat, coordinates.lng],
+                [missionPoints[0].lat, missionPoints[0].lng]
+              ]}
+              color="#64748b"
+              dashArray="5, 10"
+              weight={2}
+            />
           )}
 
           {/* Componente Modular de Puntos y Ruta de la Misión */}

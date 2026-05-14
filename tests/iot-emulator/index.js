@@ -170,19 +170,26 @@ device.on("message", (topic, payload) => {
   if (topic === TOPICS.ORDERS) {
     try {
       const data = JSON.parse(payload.toString());
-      const command = data.command || "START"; // Default to START for backward compatibility
-      
+      const command = data.cmd || data.command || "START"; // Soporte para nuevo y viejo formato
+
       console.log(`[RECV COMMAND]: ${command} para la misión ${data.mission_id}`);
-      
-      switch(command) {
-        case "START":
-          if (data.points && Array.isArray(data.points)) {
-            state.waypoints = data.points;
+
+      switch (command) {
+        case "PREPARE":
+          console.log(`[NAV]: Sistema preparado (saliendo de emergencias si las hubiera).`);
+          break;
+        case "SET_COORDS":
+          if (data.payload && Array.isArray(data.payload.waypoints)) {
+            state.waypoints = data.payload.waypoints.map(p => ({ lat: p.lat, lng: p.lon || p.lng }));
             state.currentWaypointIndex = 0;
-            state.active_mission_id = data.mission_id;
-            state.paused = false;
-            console.log(`[NAV]: Iniciando misión ${state.active_mission_id} con ${state.waypoints.length} puntos`);
+            if (data.mission_id) state.active_mission_id = data.mission_id;
+            console.log(`[NAV]: Coordenadas guardadas. Total puntos: ${state.waypoints.length}`);
           }
+          break;
+        case "START":
+          state.paused = false;
+          if (data.mission_id && !state.active_mission_id) state.active_mission_id = data.mission_id;
+          console.log(`[NAV]: Iniciando misión ${state.active_mission_id}`);
           break;
         case "PAUSE":
           state.paused = true;
@@ -193,7 +200,8 @@ device.on("message", (topic, payload) => {
           console.log(`[NAV]: Misión ${state.active_mission_id} REANUDADA`);
           break;
         case "FINISH":
-          console.log(`[NAV]: Misión ${state.active_mission_id} FINALIZADA`);
+        case "CANCEL":
+          console.log(`[NAV]: Misión ${state.active_mission_id} CANCELADA/FINALIZADA`);
           state.active_mission_id = null;
           state.waypoints = [];
           state.paused = false;
