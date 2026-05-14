@@ -91,11 +91,14 @@ export function useIoTConnection({ idToken, thingName }: UseIoTConnectionParams)
         const data = JSON.parse(text);
         
         if (topic.endsWith('/general_usv_status')) {
-          dispatch({ type: 'SET_USV_STATUS', payload: data as USVStatus });
+          const payload = data.general_usv_status ?? data;
+          dispatch({ type: 'SET_USV_STATUS', payload: payload as USVStatus });
         } else if (topic.endsWith('/mision')) {
-          dispatch({ type: 'SET_MISION', payload: data as MisionData });
+          const payload = data.mision ?? data;
+          dispatch({ type: 'SET_MISION', payload: payload as MisionData });
         } else if (topic.endsWith('/logs')) {
-          dispatch({ type: 'ADD_LOG', payload: data as LogEntry });
+          const payload = data.logs ?? data;
+          dispatch({ type: 'ADD_LOG', payload: payload as LogEntry });
         }
       } catch (err) {
         console.error('[IoT] Message parse error:', err);

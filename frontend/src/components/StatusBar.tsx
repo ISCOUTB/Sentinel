@@ -2,6 +2,7 @@ import { Battery, Activity, Wifi, WifiOff, Loader2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useIoTData } from '@/contexts/IoTContext';
+import { safeVal } from '@/utils/validators';
 
 // Mapa de estado de conexión USV → UI
 const conexionConfig = {
@@ -41,11 +42,11 @@ const StatusBar = () => {
           )}
         </div>
         <p className="text-xs text-muted-foreground mb-2">
-          {battery.toFixed(0)}%
+          {safeVal(battery, 0)}%
           {usvStatus && (
             <span className="ml-2">
-              · M1: {usvStatus.corriente_motor_1_a.toFixed(1)} A &nbsp;
-              M2: {usvStatus.corriente_motor_2_a.toFixed(1)} A
+              · M1: {safeVal(usvStatus.corriente_motor_1_a)} A &nbsp;
+              M2: {safeVal(usvStatus.corriente_motor_2_a)} A
             </span>
           )}
         </p>
@@ -86,10 +87,10 @@ const StatusBar = () => {
           <Activity className="w-4 h-4 text-primary" />
           Actividad
         </h3>
-        <div className="text-xs text-muted-foreground">{actividad.replace(/_/g, ' ')}</div>
+        <div className="text-xs text-muted-foreground">{(actividad || '—').replace(/_/g, ' ')}</div>
         {usvStatus && (
           <div className="text-xs text-muted-foreground mt-1">
-            Yaw: {usvStatus.yaw_grados.toFixed(1)}°
+            Yaw: {safeVal(usvStatus.yaw_grados)}°
           </div>
         )}
       </Card>

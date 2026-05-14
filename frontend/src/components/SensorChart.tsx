@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useIoTData } from '@/contexts/IoTContext';
+import { isValidCoord } from '@/utils/validators';
 
 // ─── Tipos e Interfaces ──────────────────────────────────────────────────────
 
@@ -76,16 +77,17 @@ const SensorChart = () => {
     // Evitar duplicados por timestamp
     if (misionData.timestamp_utc === prevTimestamp.current) return;
     prevTimestamp.current = misionData.timestamp_utc;
+    const safeNumeric = (n: any) => (isValidCoord(n) ? n : 0);
+
     const newPoint: ChartPoint = {
       time: new Date(misionData.timestamp_utc).toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit',
       }),
-      temperatura: misionData.temperatura_agua_c,
-      ph: misionData.ph_agua,
-      // oxigeno: misionData.oxigeno_disuelto_ppm,
-      turbidez: misionData.turbidez_ntu || 0,
+      temperatura: safeNumeric(misionData.temperatura_agua_c),
+      ph: safeNumeric(misionData.ph_agua),
+      turbidez: safeNumeric(misionData.turbidez_ntu),
     };
 
     historyRef.current = [...historyRef.current, newPoint].slice(-MAX_POINTS);

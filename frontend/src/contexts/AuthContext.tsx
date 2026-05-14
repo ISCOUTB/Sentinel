@@ -92,16 +92,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             let displayUsername = getEmailFromToken(sessionData.idToken) || sessionData.username;
             
             // Intentar obtener atributos completos de Cognito si faltan en el token
-            try {
-              const attrs = await cognitoAuthService.getUserAttributes(sessionData.username);
-              if (!fullName && (attrs['given_name'] || attrs['family_name'])) {
-                fullName = `${attrs['given_name'] || ''} ${attrs['family_name'] || ''}`.trim();
+            if (sessionData.username) {
+              try {
+                const attrs = await cognitoAuthService.getUserAttributes(sessionData.username);
+                if (!fullName && (attrs['given_name'] || attrs['family_name'])) {
+                  fullName = `${attrs['given_name'] || ''} ${attrs['family_name'] || ''}`.trim();
+                }
+                if (attrs['email']) {
+                  displayUsername = attrs['email'];
+                }
+              } catch (err: any) {
+                // Silenciamos la advertencia si es el error esperado de no autenticado en el primer intento
+                if (!err.message?.includes('not authenticated')) {
+                  console.warn("No se pudieron obtener atributos extra", err);
+                }
               }
-              if (attrs['email']) {
-                displayUsername = attrs['email'];
-              }
-            } catch (err) {
-              console.warn("No se pudieron obtener atributos extra", err);
             }
 
             setState((prev) => ({
@@ -185,14 +190,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         let fullName = getFullNameFromToken(idToken);
         let displayUsername = getEmailFromToken(idToken) || username;
 
-        try {
-          // Aunque tenemos username de login, obtenemos los atributos por si el idToken no trae el nombre
-          const attrs = await cognitoAuthService.getUserAttributes(username);
-          if (!fullName && (attrs['given_name'] || attrs['family_name'])) {
-             fullName = `${attrs['given_name'] || ''} ${attrs['family_name'] || ''}`.trim();
+        if (username) {
+          try {
+            // Aunque tenemos username de login, obtenemos los atributos por si el idToken no trae el nombre
+            const attrs = await cognitoAuthService.getUserAttributes(username);
+            if (!fullName && (attrs['given_name'] || attrs['family_name'])) {
+               fullName = `${attrs['given_name'] || ''} ${attrs['family_name'] || ''}`.trim();
+            }
+          } catch (err: any) {
+            if (!err.message?.includes('not authenticated')) {
+              console.warn("No se pudieron obtener atributos extra al login", err);
+            }
           }
-        } catch (err) {
-          console.warn("No se pudieron obtener atributos extra al login", err);
         }
 
         setState((prev) => ({

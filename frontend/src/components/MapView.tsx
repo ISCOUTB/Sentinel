@@ -12,6 +12,7 @@ import * as THREE from 'three';
 import { useIoTData } from '@/contexts/IoTContext';
 import MissionRoute, { MissionPoint } from './MissionRoute';
 import { toast } from 'sonner';
+import { isValidCoord, isLatLngValid } from '@/utils/validators';
 
 // ─── Fix icono de Leaflet en Vite ─────────────────────────────────────────────
 import markerIconUrl from 'leaflet/dist/images/marker-icon.png';
@@ -204,17 +205,17 @@ export default function MapView({
 
   // Coordenadas GPS reales (fallback a Cartagena si aún no hay datos)
   const BASE_COORDS = { lat: 10.391, lng: -75.4794 };
-  const coordinates = usvStatus
+  const coordinates = usvStatus && isLatLngValid(usvStatus.latitud, usvStatus.longitud)
     ? { lat: usvStatus.latitud, lng: usvStatus.longitud }
     : BASE_COORDS;
 
   const location = usvStatus
-    ? `${usvStatus.usv_id} — ${usvStatus.actividad.replace(/_/g, ' ')}`
+    ? `${usvStatus.usv_id ?? 'USV'} — ${(usvStatus.actividad ?? 'EN_ESPERA').replace(/_/g, ' ')}`
     : 'Cartagena, Colombia';
 
-  const yaw = usvStatus?.yaw_grados ?? 0;
-  const roll = usvStatus?.roll_grados ?? 0;
-  const pitch = usvStatus?.pitch_grados ?? 0;
+  const yaw = isValidCoord(usvStatus?.yaw_grados) ? usvStatus!.yaw_grados : 0;
+  const roll = isValidCoord(usvStatus?.roll_grados) ? usvStatus!.roll_grados : 0;
+  const pitch = isValidCoord(usvStatus?.pitch_grados) ? usvStatus!.pitch_grados : 0;
 
   // Auto-centrado deshabilitado para evitar que mueva la vista al usuario
 
@@ -260,11 +261,14 @@ export default function MapView({
         <div className="bg-black/70 backdrop-blur-sm text-white p-3 rounded-md shadow-lg">
           <div className="font-semibold">📍 {location}</div>
           <div className="text-xs text-gray-200">
-            Lat: {coordinates.lat.toFixed(5)}, Lng: {coordinates.lng.toFixed(5)}
+            Lat: {isValidCoord(coordinates.lat) ? coordinates.lat.toFixed(5) : '0.00000'}, 
+            Lng: {isValidCoord(coordinates.lng) ? coordinates.lng.toFixed(5) : '0.00000'}
           </div>
           {usvStatus && (
             <div className="text-xs text-gray-300 mt-1">
-              Roll: {roll.toFixed(1)}° · Pitch: {pitch.toFixed(1)}° · Yaw: {yaw.toFixed(1)}°
+              Roll: {isValidCoord(roll) ? roll.toFixed(1) : '0.0'}° · 
+              Pitch: {isValidCoord(pitch) ? pitch.toFixed(1) : '0.0'}° · 
+              Yaw: {isValidCoord(yaw) ? yaw.toFixed(1) : '0.0'}°
             </div>
           )}
         </div>
@@ -293,19 +297,19 @@ export default function MapView({
           <MapClickHandler isSelectingPoints={isSelectingPoints} onAddPoint={onAddPoint} />
 
           {/* Marcador de posición real del USV */}
-          {usvStatus && (
+          {usvStatus && isValidCoord(usvStatus.latitud) && isValidCoord(usvStatus.longitud) && (
             <Marker
               position={[usvStatus.latitud, usvStatus.longitud]}
               icon={defaultIcon}
             >
               <Popup>
-                <strong>{usvStatus.usv_id}</strong>
+                <strong>{usvStatus.usv_id ?? 'USV'}</strong>
                 <br />
                 Lat: {usvStatus.latitud.toFixed(5)}
                 <br />
                 Lng: {usvStatus.longitud.toFixed(5)}
                 <br />
-                Yaw: {usvStatus.yaw_grados.toFixed(1)}°
+                Yaw: {isValidCoord(usvStatus.yaw_grados) ? usvStatus.yaw_grados.toFixed(1) : '0.0'}°
               </Popup>
             </Marker>
           )}

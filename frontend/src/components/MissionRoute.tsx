@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Marker, Polyline, Tooltip } from 'react-leaflet';
 import L from 'leaflet';
+import { isValidCoord, isLatLngValid } from '@/utils/validators';
 
 const createCustomIcon = (color: string) => L.divIcon({
   className: 'custom-pin-wrapper',
@@ -27,14 +28,18 @@ interface MissionRouteProps {
 }
 
 export default function MissionRoute({ missionPoints, onTotalDistanceChange }: MissionRouteProps) {
+  const validPoints = useMemo(() => 
+    missionPoints.filter(p => isLatLngValid(p.lat, p.lng)),
+    [missionPoints]
+  );
   
   const routeData = useMemo(() => {
     let totalDist = 0;
     const segments = [];
     
-    for (let i = 0; i < missionPoints.length - 1; i++) {
-      const p1 = missionPoints[i];
-      const p2 = missionPoints[i + 1];
+    for (let i = 0; i < validPoints.length - 1; i++) {
+      const p1 = validPoints[i];
+      const p2 = validPoints[i + 1];
       
       const ll1 = L.latLng(p1.lat, p1.lng);
       const ll2 = L.latLng(p2.lat, p2.lng);
@@ -54,7 +59,7 @@ export default function MissionRoute({ missionPoints, onTotalDistanceChange }: M
     }
 
     return { totalDist, segments };
-  }, [missionPoints]);
+  }, [validPoints]);
 
   React.useEffect(() => {
     if (onTotalDistanceChange) {
@@ -62,25 +67,27 @@ export default function MissionRoute({ missionPoints, onTotalDistanceChange }: M
     }
   }, [routeData.totalDist, onTotalDistanceChange]);
 
-  if (missionPoints.length === 0) return null;
+  if (validPoints.length === 0) return null;
 
   return (
     <>
-      <Polyline 
-        positions={missionPoints.map(p => [p.lat, p.lng])} 
-        color="#3b82f6" 
-        weight={5} 
-        dashArray="8, 8" 
-      />
+      {validPoints.length > 1 && (
+        <Polyline 
+          positions={validPoints.map(p => [p.lat, p.lng])} 
+          color="#3b82f6" 
+          weight={5} 
+          dashArray="8, 8" 
+        />
+      )}
       
-      {missionPoints.map((point, index) => {
+      {validPoints.map((point, index) => {
         let label = `Punto ${index + 1}`;
         let icon = midIcon;
 
         if (index === 0) {
           label = "Inicio";
           icon = startIcon;
-        } else if (index === missionPoints.length - 1 && missionPoints.length > 1) {
+        } else if (index === validPoints.length - 1 && validPoints.length > 1) {
           label = "Final";
           icon = endIcon;
         }
@@ -99,15 +106,17 @@ export default function MissionRoute({ missionPoints, onTotalDistanceChange }: M
       })}
 
       {routeData.segments.map((segment, index) => (
-        <Marker 
-          key={`segment-${index}`} 
-          position={[segment.midpoint.lat, segment.midpoint.lng]} 
-          icon={invisibleIcon}
-        >
-          <Tooltip permanent direction="center" className="custom-distance-tooltip">
-            {segment.distance.toFixed(0)} m
-          </Tooltip>
-        </Marker>
+        isValidCoord(segment.midpoint.lat) && isValidCoord(segment.midpoint.lng) && (
+          <Marker 
+            key={`segment-${index}`} 
+            position={[segment.midpoint.lat, segment.midpoint.lng]} 
+            icon={invisibleIcon}
+          >
+            <Tooltip permanent direction="center" className="custom-distance-tooltip">
+              {isValidCoord(segment.distance) ? segment.distance.toFixed(0) : '0'} m
+            </Tooltip>
+          </Marker>
+        )
       ))}
     </>
   );

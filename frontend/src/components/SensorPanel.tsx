@@ -2,6 +2,7 @@ import { Droplet, Zap, Thermometer, Wind, FlaskConical, Gauge } from 'lucide-rea
 import SensorChart from './SensorChart';
 import { Card } from '@/components/ui/card';
 import { useIoTData } from '@/contexts/IoTContext';
+import { safeVal } from '@/utils/validators';
 
 // ─── Icon mapping ─────────────────────────────────────────────────────────────
 
@@ -13,32 +14,25 @@ const SensorPanel = () => {
     ? [
         {
           name: 'Temperatura Agua',
-          value: misionData.temperatura_agua_c.toFixed(1),
+          value: safeVal(misionData.temperatura_agua_c),
           unit: '°C',
           icon: Thermometer,
           color: 'text-orange-400',
         },
         {
           name: 'pH Agua',
-          value: misionData.ph_agua.toFixed(2),
+          value: safeVal(misionData.ph_agua, 2),
           unit: 'pH',
           icon: FlaskConical,
           color: 'text-violet-400',
         },
         {
           name: 'Turbidez',
-          value: misionData.turbidez_ntu.toFixed(1),
+          value: safeVal(misionData.turbidez_ntu),
           unit: 'NTU',
           icon: Droplet,
           color: 'text-blue-400',
         },
-        // {
-        //   name: 'Oxígeno Disuelto',
-        //   value: misionData.oxigeno_disuelto_ppm.toFixed(1),
-        //   unit: 'ppm',
-        //   icon: Wind,
-        //   color: 'text-emerald-400',
-        // },
       ]
     : [];
 
@@ -47,19 +41,19 @@ const SensorPanel = () => {
     ? [
         {
           label: 'Corriente M1',
-          value: usvStatus.corriente_motor_1_a.toFixed(1),
+          value: safeVal(usvStatus.corriente_motor_1_a),
           unit: 'A',
           icon: Zap,
         },
         {
           label: 'Corriente M2',
-          value: usvStatus.corriente_motor_2_a.toFixed(1),
+          value: safeVal(usvStatus.corriente_motor_2_a),
           unit: 'A',
           icon: Zap,
         },
         {
           label: 'Voltaje Celda 1',
-          value: usvStatus.voltaje_celda_1_v.toFixed(2),
+          value: safeVal(usvStatus.voltaje_celda_1_v, 2),
           unit: 'V',
           icon: Gauge,
         },
