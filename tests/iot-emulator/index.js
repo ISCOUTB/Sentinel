@@ -31,7 +31,7 @@ const TOPICS = {
   STATUS: `${THING_NAME}/general_usv_status`,
   MISSION: `${THING_NAME}/mision`,
   LOGS: `${THING_NAME}/logs`,
-  WAYPOINTS: `${THING_NAME}/waypoints`,
+  ORDERS: `${THING_NAME}/orders`,
 };
 
 // ===== Estado dinámico de simulación =====
@@ -54,6 +54,7 @@ const state = {
   waypoints: [],
   currentWaypointIndex: 0,
   active_mission_id: null,
+  paused: false,
 };
 
 function clamp(value, min, max) {
@@ -72,7 +73,7 @@ function round(value, decimals) {
 function nextState() {
   state.tick += 1;
 
-  if (state.waypoints && state.waypoints.length > 0 && state.currentWaypointIndex < state.waypoints.length) {
+  if (!state.paused && state.waypoints && state.waypoints.length > 0 && state.currentWaypointIndex < state.waypoints.length) {
     // Navigation mode
     const target = state.waypoints[state.currentWaypointIndex];
     const dx = target.lng - state.longitud;
@@ -160,26 +161,48 @@ device.on("connect", () => {
   console.log("[CONNECT]: Conectado a AWS IoT Core <====");
   awsConnected = true;
 
-  // Suscribirse al tópico de waypoints
-  device.subscribe(TOPICS.WAYPOINTS);
-  console.log(`[SUBSCRIBE]: Escuchando en ${TOPICS.WAYPOINTS}`);
+  // Suscribirse al tópico de ordenes
+  device.subscribe(TOPICS.ORDERS);
+  console.log(`[SUBSCRIBE]: Escuchando en ${TOPICS.ORDERS}`);
 });
 
 device.on("message", (topic, payload) => {
-  if (topic === TOPICS.WAYPOINTS) {
+  if (topic === TOPICS.ORDERS) {
     try {
       const data = JSON.parse(payload.toString());
-      console.log(`[RECV WAYPOINTS]: Recibidos ${data.points?.length} puntos para la misión ${data.mission_id}`);
-      if (data.points && Array.isArray(data.points)) {
-        state.waypoints = data.points;
-        state.currentWaypointIndex = 0;
-        if (data.mission_id) {
-          state.active_mission_id = data.mission_id;
-          console.log(`[NAV]: Misión activa asignada a ${state.active_mission_id}`);
-        }
+      const command = data.command || "START"; // Default to START for backward compatibility
+      
+      console.log(`[RECV COMMAND]: ${command} para la misión ${data.mission_id}`);
+      
+      switch(command) {
+        case "START":
+          if (data.points && Array.isArray(data.points)) {
+            state.waypoints = data.points;
+            state.currentWaypointIndex = 0;
+            state.active_mission_id = data.mission_id;
+            state.paused = false;
+            console.log(`[NAV]: Iniciando misión ${state.active_mission_id} con ${state.waypoints.length} puntos`);
+          }
+          break;
+        case "PAUSE":
+          state.paused = true;
+          console.log(`[NAV]: Misión ${state.active_mission_id} PAUSADA`);
+          break;
+        case "RESUME":
+          state.paused = false;
+          console.log(`[NAV]: Misión ${state.active_mission_id} REANUDADA`);
+          break;
+        case "FINISH":
+          console.log(`[NAV]: Misión ${state.active_mission_id} FINALIZADA`);
+          state.active_mission_id = null;
+          state.waypoints = [];
+          state.paused = false;
+          break;
+        default:
+          console.log(`[NAV]: Comando desconocido: ${command}`);
       }
     } catch (err) {
-      console.error("[RECV ERROR]: Error parseando waypoints", err);
+      console.error("[RECV ERROR]: Error procesando comando", err);
     }
   }
 });

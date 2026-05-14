@@ -116,6 +116,39 @@ def get_missions(db: Session = Depends(get_db), current_user = Depends(get_curre
     # Devolver invertido (más reciente primero) para la UI
     return result[::-1]
 
+def publish_mission_command(command: str, mission_id: str, points: List = None):
+    """
+    Publica un comando de misión en AWS IoT Core.
+    """
+    try:
+        endpoint = settings.IOT_ENDPOINT
+        if endpoint and not endpoint.startswith("https://"):
+            endpoint = f"https://{endpoint}"
+            
+        iot_client = boto3.client(
+            'iot-data', 
+            region_name=settings.COGNITO_REGION, 
+            endpoint_url=endpoint,
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
+        )
+        topic = f"{settings.IOT_THING_NAME}/orders"
+        payload = {
+            "command": command,
+            "mission_id": mission_id,
+        }
+        if points:
+            payload["points"] = [{"lat": p.lat, "lng": p.lng} for p in points]
+            
+        iot_client.publish(
+            topic=topic,
+            qos=1,
+            payload=json.dumps(payload)
+        )
+        print(f"MQTT Publish: {command} for mission {mission_id} on topic {topic}")
+    except Exception as e:
+        print(f"Error publishing to IoT Core ({command}): {e}")
+
 @router.post("/missions", response_model=MissionResponse)
 def create_mission(mission_in: MissionCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     """
@@ -131,33 +164,9 @@ def create_mission(mission_in: MissionCreate, db: Session = Depends(get_db), cur
     db.commit()
     db.refresh(new_mission)
 
-    # Publicar los waypoints en AWS IoT Core
+    # Publicar los waypoints y comando de inicio en AWS IoT Core
     if mission_in.points:
-        try:
-            endpoint = settings.IOT_ENDPOINT
-            if endpoint and not endpoint.startswith("https://"):
-                endpoint = f"https://{endpoint}"
-                
-            iot_client = boto3.client(
-                'iot-data', 
-                region_name=settings.COGNITO_REGION, 
-                endpoint_url=endpoint,
-                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
-            )
-            topic = f"{settings.IOT_THING_NAME}/waypoints"
-            payload = {
-                "mission_id": new_mission.id,
-                "points": [{"lat": p.lat, "lng": p.lng} for p in mission_in.points]
-            }
-            iot_client.publish(
-                topic=topic,
-                qos=1,
-                payload=json.dumps(payload)
-            )
-        except Exception as e:
-            print(f"Error publishing to IoT Core: {e}")
-            # Optional: handle error depending on how critical it is
+        publish_mission_command("START", new_mission.id, mission_in.points)
             
     return new_mission
 
@@ -174,6 +183,10 @@ def finish_mission(mission_id: str, db: Session = Depends(get_db), current_user 
     mission.end_time = datetime.datetime.utcnow()
     db.commit()
     db.refresh(mission)
+    
+    # Publicar comando de finalización en MQTT
+    publish_mission_command("FINISH", mission.id)
+    
     return mission
 
 @router.patch("/missions/{mission_id}/pause", response_model=MissionResponse)
@@ -188,6 +201,10 @@ def pause_mission(mission_id: str, db: Session = Depends(get_db), current_user =
     mission.status = "PAUSADO"
     db.commit()
     db.refresh(mission)
+    
+    # Publicar comando de pausa en MQTT
+    publish_mission_command("PAUSE", mission.id)
+    
     return mission
 
 @router.patch("/missions/{mission_id}/resume", response_model=MissionResponse)
@@ -202,6 +219,10 @@ def resume_mission(mission_id: str, db: Session = Depends(get_db), current_user 
     mission.status = "EN_PROGRESO"
     db.commit()
     db.refresh(mission)
+    
+    # Publicar comando de reanudación en MQTT
+    publish_mission_command("RESUME", mission.id)
+    
     return mission
 
 @router.post("/telemetry")

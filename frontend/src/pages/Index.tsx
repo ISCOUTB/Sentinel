@@ -37,7 +37,7 @@ const Index = () => {
 
   useEffect(() => {
     let timer: any;
-    
+
     if (activeMissionId && missionStartTime && !isMissionPaused) {
       timer = setInterval(() => {
         const now = Date.now();
@@ -95,7 +95,7 @@ const Index = () => {
       toast.error('Necesitas al menos 2 puntos para iniciar la misión.');
       return;
     }
-    
+
     setLoadingMission(true);
     try {
       const missionName = `Misión HMI ${formatDate(new Date())}`;
@@ -103,7 +103,7 @@ const Index = () => {
       setActiveMissionId(response.id);
       setMissionStartTime(Date.now());
       setIsSelectingPoints(false);
-      
+
       toast.success('Misión iniciada. El sistema guardará la telemetría y el vehículo se pondrá en marcha.');
     } catch (err) {
       console.error(err);
@@ -115,7 +115,7 @@ const Index = () => {
 
   const handleFinishMission = async () => {
     if (!activeMissionId) return;
-    
+
     setLoadingMission(true);
     try {
       await dataAPI.finishMission(activeMissionId, accessToken!);
@@ -177,9 +177,9 @@ const Index = () => {
                 {formatDate(new Date())}
               </p>
             </div>
-            <Button 
-              onClick={handleLogout} 
-              variant="ghost" 
+            <Button
+              onClick={handleLogout}
+              variant="ghost"
               size="icon"
               className="text-red-500 hover:text-red-700 hover:bg-red-50"
               title="Cerrar Sesión"
@@ -204,11 +204,11 @@ const Index = () => {
                     {formatElapsed(elapsedTime)}
                   </span>
                 </p>
-                
+
                 {/* Botón para alternar edición */}
                 {isSelectingPoints ? (
-                  <Button 
-                    variant="default" 
+                  <Button
+                    variant="default"
                     size="sm"
                     onClick={() => setIsSelectingPoints(false)}
                     className="bg-blue-600"
@@ -218,8 +218,8 @@ const Index = () => {
                 ) : (
                   /* Mostrar "Volver a ruta" si hay puntos pero no ha iniciado misión */
                   missionPoints.length > 0 && !activeMissionId && (
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       size="sm"
                       onClick={() => setIsSelectingPoints(true)}
                     >
@@ -227,18 +227,18 @@ const Index = () => {
                     </Button>
                   )
                 )}
-                
+
                 {/* Quitar último punto solo si está editando */}
                 {isSelectingPoints && missionPoints.length > 0 && (
                   <Button variant="destructive" size="sm" onClick={removeLastPoint}>
                     <Trash2 className="w-4 h-4 mr-1" /> Quitar último punto
                   </Button>
                 )}
-                
+
                 {missionPoints.length >= 2 && !activeMissionId && !isSelectingPoints && (
-                  <Button 
-                    variant="default" 
-                    size="sm" 
+                  <Button
+                    variant="default"
+                    size="sm"
                     className="bg-green-600 hover:bg-green-700 text-white"
                     onClick={handleStartMission}
                     disabled={loadingMission}
@@ -250,9 +250,9 @@ const Index = () => {
                 {activeMissionId && (
                   <div className="flex items-center gap-2">
                     {isMissionPaused ? (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="bg-amber-500 hover:bg-amber-600 text-white border-none"
                         onClick={handleResumeMission}
                         disabled={loadingMission}
@@ -260,9 +260,9 @@ const Index = () => {
                         <Play className="w-4 h-4 mr-2" /> Reanudar misión
                       </Button>
                     ) : (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="bg-amber-500 hover:bg-amber-600 text-white border-none"
                         onClick={handlePauseMission}
                         disabled={loadingMission}
@@ -270,10 +270,10 @@ const Index = () => {
                         <Play className="w-4 h-4 mr-2" /> Pausar misión
                       </Button>
                     )}
-                    
-                    <Button 
-                      variant="default" 
-                      size="sm" 
+
+                    <Button
+                      variant="default"
+                      size="sm"
                       className="bg-red-600 hover:bg-red-700 text-white animate-pulse"
                       onClick={handleFinishMission}
                       disabled={loadingMission}
@@ -292,13 +292,13 @@ const Index = () => {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       onClick={() => setIsSelectingPoints(true)}
                       disabled={activeMissionId !== null || isSelectingPoints}
                     >
                       <MapPin className="w-4 h-4 mr-2" /> Iniciar nueva misión
                     </DropdownMenuItem>
-                    <ReportGeneratorModal 
+                    <ReportGeneratorModal
                       trigger={
                         <div className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
                           <FileText className="w-4 h-4 mr-2" /> Generar Reporte (IA)
@@ -319,9 +319,9 @@ const Index = () => {
                   </div>
                 </div>
               )}
-              
-              <MapView 
-                missionPoints={missionPoints} 
+
+              <MapView
+                missionPoints={missionPoints}
                 isSelectingPoints={isSelectingPoints}
                 onAddPoint={handleAddPoint}
               />
