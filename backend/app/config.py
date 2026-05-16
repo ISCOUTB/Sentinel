@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     IOT_THING_NAME: str = "USV-001"
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = ""
+    AWS_REGION: str = "us-east-1"
     class Config:
         env_file = ".env"
         extra = "ignore"

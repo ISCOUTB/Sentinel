@@ -127,7 +127,7 @@ def publish_mission_command(command: str, mission_id: str, points: List = None):
             
         iot_client = boto3.client(
             'iot-data', 
-            region_name=settings.COGNITO_REGION, 
+            region_name=settings.AWS_REGION, 
             endpoint_url=endpoint,
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
@@ -146,7 +146,7 @@ def publish_mission_command(command: str, mission_id: str, points: List = None):
             iot_client.publish(
                 topic=topic,
                 qos=1,
-                payload=json.dumps(prepare_payload)
+                payload=json.dumps(prepare_payload).encode('utf-8')
             )
             print(f"MQTT Publish: PREPARE for mission {mission_id} on topic {topic}")
 
@@ -162,7 +162,7 @@ def publish_mission_command(command: str, mission_id: str, points: List = None):
             iot_client.publish(
                 topic=topic,
                 qos=1,
-                payload=json.dumps(set_coords_payload)
+                payload=json.dumps(set_coords_payload).encode('utf-8')
             )
             print(f"MQTT Publish: SET_COORDS for mission {mission_id} on topic {topic}")
             
@@ -174,9 +174,9 @@ def publish_mission_command(command: str, mission_id: str, points: List = None):
         iot_client.publish(
             topic=topic,
             qos=1,
-            payload=json.dumps(payload)
+            payload=json.dumps(payload).encode('utf-8')
         )
-        print(f"MQTT Publish: {hw_cmd} for mission {mission_id} on topic {topic}")
+        print(f"MQTT Publish: {hw_cmd} for mission {mission_id} on topic {topic} with payload: {payload}")
     except Exception as e:
         print(f"Error publishing to IoT Core ({command}): {e}")
 
