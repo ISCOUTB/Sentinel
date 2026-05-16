@@ -45,14 +45,14 @@ const SENSOR_LINES = [
   { key: "temperatura" as const, label: "Temp. Agua (°C)", color: "#f87171" },
   // { key: "oxigeno" as const, label: "O₂ Disuelto (ppm)", color: "#34d399" },
   { key: "ph" as const, label: "pH", color: "#a78bfa" },
-  { key: "turbidez" as const, label: "Turbidez (NTU)", color: "#fbbf24" },
+  { key: "turbidez" as const, label: "Turbidez (NTU)", color: "#13731cff" },
 ];
 
 // ─── Componente Principal ─────────────────────────────────────────────────────
 
 const SensorChart = () => {
   const { misionData } = useIoTData();
-  
+
   // Estados para la funcionalidad de navegación y visibilidad
   const [visibleLines, setVisibleLines] = useState<VisibleLines>({
     temperatura: true,
@@ -197,9 +197,9 @@ const SensorChart = () => {
       <ResponsiveContainer width="100%" height={250}>
         <LineChart data={data} margin={{ top: 8, right: 20, left: 20, bottom: 8 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-          <XAxis 
-            dataKey="time" 
-            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} 
+          <XAxis
+            dataKey="time"
+            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }}
             minTickGap={30}
           />
           <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} width={30} />
