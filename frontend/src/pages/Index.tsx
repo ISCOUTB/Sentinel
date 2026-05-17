@@ -196,8 +196,8 @@ const Index = () => {
           {/* Map Section - Takes 2 columns */}
           <div className="lg:col-span-2 flex flex-col gap-4 lg:overflow-hidden">
             {/* Header for Map */}
-            <div className="flex items-center justify-between flex-shrink-0 px-2">
-              <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between flex-shrink-0 px-2 gap-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4">
                 <p className="text-sm font-semibold">
                   Tiempo de actividad:{' '}
                   <span className="font-mono text-primary">
@@ -248,7 +248,7 @@ const Index = () => {
                 )}
 
                 {activeMissionId && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     {isMissionPaused ? (
                       <Button
                         variant="outline"
@@ -284,7 +284,7 @@ const Index = () => {
                 )}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 self-start sm:self-auto">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm" className="flex items-center gap-2">
