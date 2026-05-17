@@ -283,6 +283,7 @@ def build_line_protocol(payload: Dict[str, object]) -> Optional[str]:
     measurement = "usv_telemetry"
     device_id = str(
         payload.get("device_id")
+        or payload.get("usv_id")
         or payload.get("clientId")
         or payload.get("thingname")
         or "unknown_device"

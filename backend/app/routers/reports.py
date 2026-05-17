@@ -96,6 +96,11 @@ def generate_report(mission_id: str = Query(...), db: Session = Depends(get_db),
                 else:
                     ts_bog = None
 
+                # Debug: imprimir las llaves disponibles en el primer registro
+                if not data_dicts:
+                    print(f"DEBUG: InfluxDB record values keys: {list(record.values.keys())}")
+                    print(f"DEBUG: Sample record: {record.values}")
+
                 data_dicts.append({
                     "timestamp": ts_bog,
                     "temperature": record.values.get("temperatura_agua_c"),
@@ -103,6 +108,9 @@ def generate_report(mission_id: str = Query(...), db: Session = Depends(get_db),
                     "turbidity": record.values.get("turbidez_ntu"),
                 })
     except Exception as e:
+        print(f"DEBUG: Error in generate_report: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Error al consultar InfluxDB: {str(e)}")
 
     if not data_dicts:

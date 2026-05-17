@@ -108,6 +108,16 @@ class Security:
         except (JWTError, Exception):
             return None
 
+    @staticmethod
+    def verify_refresh_token(token: str) -> Optional[str]:
+        """
+        Verifica un refresh token local y retorna el subject (username).
+        """
+        payload = Security.decode_token(token)
+        if not payload or payload.get("type") != "refresh":
+            return None
+        return payload.get("sub")
+
 
 # =========================
 # AUTORIZACIÓN POR ROLES

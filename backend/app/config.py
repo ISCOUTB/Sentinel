@@ -14,26 +14,26 @@ class Settings(BaseSettings):
     
     # AWS Cognito Configuration
     COGNITO_REGION: str = "us-east-1"
-    COGNITO_USER_POOL_ID: str = "us-east-1_2ZOyS9sDI"
-    COGNITO_APP_CLIENT_ID: str = "7k22tsf93huoqkcjlp6oivvjbl"
+    COGNITO_USER_POOL_ID: str = "us-east-1_PfMPPwYKa"
+    COGNITO_APP_CLIENT_ID: str = "2i6r6a7hi79epi20b5uedgeo1e"
     
     # Gemini API
     GEMINI_API_KEY: str = ""
 
     # InfluxDB Configuration
-    INFLUXDB_URL: str = "http://host.docker.internal:8086"
+    INFLUXDB_URL: str = "http://sentinel-influxdb:8086"
     INFLUXDB_TOKEN: str = "sentinel-local-admin-token-please-change"
     INFLUXDB_ORG: str = "sentinel-org"
     INFLUXDB_BUCKET: str = "mission"
     
     # AWS IoT Core Configuration
-    IOT_ENDPOINT: str = "https://a3399dxn78u8zv-ats.iot.us-east-1.amazonaws.com"
+    IOT_ENDPOINT: str = "a3399dxn78u8zv-ats.iot.us-east-1.amazonaws.com"
     IOT_THING_NAME: str = "USV-001"
     AWS_ACCESS_KEY_ID: str = ""
     AWS_SECRET_ACCESS_KEY: str = ""
     AWS_REGION: str = "us-east-1"
     class Config:
-        env_file = ".env"
+        env_file = "../../.env"
         extra = "ignore"
 
     @field_validator('BACKEND_CORS_ORIGINS', mode='before')

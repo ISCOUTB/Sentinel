@@ -26,6 +26,7 @@ export interface USVStatus {
   // Posición GPS
   latitud: number;
   longitud: number;
+  current_waypoint_index?: number;
 
   timestamp_utc: string;
 }

@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: '../../.env' });
 const awsIot = require('aws-iot-device-sdk');
 const fs = require('fs');
 const path = require('path');
@@ -19,7 +19,7 @@ const device = awsIot.device({
   keyPath,
   certPath,
   caPath,
-  clientId: process.env.AWS_IOT_CLIENT_ID || 'usv-barquito-emulator',
+  clientId: process.env.EMULATOR_IOT_CLIENT_ID || 'sentinel-emulator-usv',
   host: process.env.AWS_IOT_ENDPOINT,
   keepalive: 30,
   protocol: 'mqtts'
@@ -238,6 +238,7 @@ setInterval(async () => {
   const status = {
     ...jsonData.general_usv_status,
     usv_id: THING_NAME,
+    device_id: THING_NAME,
     actividad: state.bateria <= 25 ? "RETORNO" : jsonData.general_usv_status.actividad,
     bateria_porcentaje: round(state.bateria, 1),
     corriente_motor_1_a: round(state.corriente_motor_1, 2),
@@ -250,12 +251,14 @@ setInterval(async () => {
     yaw_grados: round(state.yaw, 2),
     latitud: round(state.latitud, 6),
     longitud: round(state.longitud, 6),
+    current_waypoint_index: state.currentWaypointIndex,
     timestamp_utc,
   };
 
   const mission = {
     ...jsonData.mision,
     usv_id: THING_NAME,
+    device_id: THING_NAME,
     estado_mision: state.bateria <= 25 ? "RETORNO" : jsonData.mision.estado_mision,
     latitud: status.latitud,
     longitud: status.longitud,

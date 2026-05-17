@@ -23,10 +23,10 @@ import { CognitoIdentityClient, GetIdCommand } from "@aws-sdk/client-cognito-ide
 
 // ─── Configuración leída de variables de entorno ──────────────────────────────
 
-const IOT_ENDPOINT = (import.meta.env.VITE_IOT_ENDPOINT as string).replace(/^https?:\/\//, '');
+const IOT_ENDPOINT = (import.meta.env.VITE_IOT_ENDPOINT as string || '').replace(/^https?:\/\//, '');
 const REGION = (import.meta.env.VITE_AWS_REGION as string) ?? 'us-east-1';
-const IDENTITY_POOL_ID = import.meta.env.VITE_COGNITO_IDENTITY_POOL_ID as string;
-const USER_POOL_ID = import.meta.env.VITE_COGNITO_USER_POOL_ID as string;
+const IDENTITY_POOL_ID = import.meta.env.VITE_COGNITO_IDENTITY_POOL_ID as string || '';
+const USER_POOL_ID = import.meta.env.VITE_COGNITO_USER_POOL_ID as string || '';
 const IOT_POLICY_NAME = import.meta.env.VITE_IOT_POLICY_NAME || "sentinel-hmi-policy";
 
 // ─── Tipos públicos ───────────────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import fs from "fs";
 import { componentTagger } from "lovable-tagger";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 
@@ -12,6 +13,8 @@ export default defineConfig(({ mode }) => {
     "http://localhost:8000";
 
   return {
+    // Look for .env in current dir or parent dir (for centralization)
+    envDir: fs.existsSync(path.resolve(__dirname, "../.env")) ? ".." : ".",
     server: {
       host: "::",
       port: 8080,

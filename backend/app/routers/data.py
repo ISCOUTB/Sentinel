@@ -176,9 +176,11 @@ def publish_mission_command(command: str, mission_id: str, points: List = None):
             qos=1,
             payload=json.dumps(payload).encode('utf-8')
         )
-        print(f"MQTT Publish: {hw_cmd} for mission {mission_id} on topic {topic} with payload: {payload}")
+        print(f"MQTT Publish SUCCESS: {hw_cmd} for mission {mission_id} on topic {topic}")
     except Exception as e:
-        print(f"Error publishing to IoT Core ({command}): {e}")
+        print(f"!!! MQTT Publish ERROR ({command}): {str(e)}")
+        import traceback
+        traceback.print_exc()
 
 @router.post("/missions", response_model=MissionResponse)
 def create_mission(mission_in: MissionCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):

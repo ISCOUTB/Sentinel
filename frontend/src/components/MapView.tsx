@@ -312,21 +312,28 @@ export default function MapView({
             </Marker>
           )}
 
-          {/* Línea punteada desde el USV al primer punto de la misión */}
+          {/* Línea punteada desde el USV al siguiente punto de la misión */}
           {missionPoints.length > 0 && isValidCoord(coordinates.lat) && isValidCoord(coordinates.lng) && (
             <Polyline
               positions={[
                 [coordinates.lat, coordinates.lng],
-                [missionPoints[0].lat, missionPoints[0].lng]
+                [
+                  missionPoints[usvStatus?.current_waypoint_index ?? 0]?.lat ?? missionPoints[0].lat,
+                  missionPoints[usvStatus?.current_waypoint_index ?? 0]?.lng ?? missionPoints[0].lng
+                ]
               ]}
-              color="#64748b"
+              color="#f59e0b"
               dashArray="5, 10"
-              weight={2}
+              weight={3}
             />
           )}
 
           {/* Componente Modular de Puntos y Ruta de la Misión */}
-          <MissionRoute missionPoints={missionPoints} onTotalDistanceChange={setTotalDistance} />
+          <MissionRoute 
+            missionPoints={missionPoints} 
+            onTotalDistanceChange={setTotalDistance}
+            currentWaypointIndex={usvStatus?.current_waypoint_index ?? 0}
+          />
 
         </MapContainer>
       </div>
