@@ -339,7 +339,7 @@ export default function MapView({
       </div>
 
       {/* ── Overlay 3D Esquina Inferior Derecha ── */}
-      <div className="absolute bottom-4 right-4 z-[400] w-48 h-48 bg-black/20 backdrop-blur-sm rounded-full overflow-hidden border-2 border-white/20 shadow-xl pointer-events-auto cursor-grab active:cursor-grabbing">
+      <div className="absolute bottom-4 right-4 z-[400] w-28 h-28 lg:w-48 lg:h-48 bg-black/20 backdrop-blur-sm rounded-full overflow-hidden border-2 border-white/20 shadow-xl pointer-events-auto cursor-grab active:cursor-grabbing">
         <Canvas shadows dpr={[1, 2]} style={{ background: 'transparent' }}>
           <PerspectiveCamera makeDefault position={[0, 4, 8]} />
           <hemisphereLight groundColor={0x444444} intensity={0.7} />

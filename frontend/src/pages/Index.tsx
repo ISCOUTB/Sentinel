@@ -161,8 +161,8 @@ const Index = () => {
   };
 
   return (
-    <div className="h-screen bg-background text-foreground p-6 flex flex-col overflow-hidden">
-      <div className="max-w-[1920px] mx-auto w-full h-full flex flex-col">
+    <div className="min-h-screen overflow-auto p-4 lg:h-screen lg:overflow-hidden lg:p-6 bg-background text-foreground flex flex-col">
+      <div className="max-w-[1920px] mx-auto w-full flex-1 lg:h-full flex flex-col">
         {/* Header */}
         <header className="flex justify-between items-center mb-2 flex-shrink-0">
           <h1 className="text-2xl font-bold">
@@ -192,9 +192,9 @@ const Index = () => {
         <Separator className="bg-gray-200 mb-6" />
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1 lg:overflow-hidden">
           {/* Map Section - Takes 2 columns */}
-          <div className="lg:col-span-2 flex flex-col gap-4 overflow-hidden">
+          <div className="lg:col-span-2 flex flex-col gap-4 lg:overflow-hidden">
             {/* Header for Map */}
             <div className="flex items-center justify-between flex-shrink-0 px-2">
               <div className="flex items-center gap-4">
@@ -291,7 +291,7 @@ const Index = () => {
                       Acciones de Misión <ChevronDown className="w-4 h-4" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
+                  <DropdownMenuContent align="end" className="z-[500]">
                     <DropdownMenuItem
                       onClick={() => setIsSelectingPoints(true)}
                       disabled={activeMissionId !== null || isSelectingPoints}
@@ -310,7 +310,7 @@ const Index = () => {
               </div>
             </div>
 
-            <div className={`relative flex-1 min-h-0 border rounded-xl overflow-hidden shadow-sm ${isSelectingPoints ? 'cursor-crosshair' : ''}`}>
+            <div className={`relative h-[400px] flex-none lg:h-auto lg:flex-1 lg:min-h-0 border rounded-xl overflow-hidden shadow-sm ${isSelectingPoints ? 'cursor-crosshair' : ''}`}>
               {isSelectingPoints && (
                 <div className="absolute top-4 right-4 z-[450] pointer-events-none animate-in fade-in zoom-in duration-300">
                   <div className="bg-blue-600 text-white px-6 py-3 rounded-lg shadow-2xl font-bold border-2 border-white flex items-center gap-3 animate-pulse">
@@ -333,7 +333,7 @@ const Index = () => {
           </div>
 
           {/* Sensor Panel - Takes 1 column */}
-          <div className="lg:col-span-1 overflow-hidden">
+          <div className="lg:col-span-1 lg:overflow-hidden pb-6 lg:pb-0">
             <SensorPanel />
           </div>
         </div>
