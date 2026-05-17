@@ -1,36 +1,55 @@
 # ==============================================================================
-# Sentinel Project - Terraform Configuration Example (terraform.tfvars.example)
+# SENTINEL PROJECT - TERRAFORM CONFIGURATION EXAMPLE (terraform.tfvars.example)
 # ==============================================================================
 
-# AWS Credentials
-my_access_key = "YOUR_AWS_ACCESS_KEY"
-my_secret_key = "YOUR_AWS_SECRET_KEY"
-aws_region     = "us-east-1"
+# ==============================================================================
+# BLOQUE A: INFRAESTRUCTURA Y NUBE (Cloud & DevOps)
+# Controla la base de AWS y los servicios serverless
+# ==============================================================================
 
-# Deployment Configuration
-region_sentinel     = "us-east-1"
-repo_branch         = "develop"
-secret_key          = "your-secret-key"
+# --- AWS Authentication ---
+my_access_key = "YOUR_AWS_ACCESS_KEY_ID"
+my_secret_key = "YOUR_AWS_SECRET_ACCESS_KEY"
+aws_region    = "us-east-1"
 
-# MySQL Configuration
+# --- Global Deployment ---
+region_sentinel = "us-east-1"
+repo_branch     = "develop"
+
+# --- AWS IoT Core & Lambda Infrastructure ---
+thing_name           = "USV-001"
+iot_policy_name      = "sentinel-hmi-policy"
+lambda_function_name = "iot-to-influxdb"
+
+
+# ==============================================================================
+# BLOQUE B: APLICACIÓN CORE SENTINEL (Backend & Data)
+# Variables requeridas para los servicios principales
+# ==============================================================================
+
+# --- Application Security ---
+secret_key = "generate-a-long-random-secret-key"
+
+# --- Database (MySQL) ---
 mysql_root_password = "rootpassword"
 mysql_database      = "usv_hmi"
 mysql_user          = "usv_user"
 mysql_password      = "usv_password"
 
-# InfluxDB Configuration
-db_instance_name    = "mi-influxdb-instance"
-db_username         = "admin"
-db_password         = "your-db-password"
-organization_name   = "sentinel-org"
-bucket_name         = "mission"
+
+# ==============================================================================
+# BLOQUE C: HERRAMIENTAS ADICIONALES (Analytics & Monitoring)
+# Configuración específica para InfluxDB en la nube
+# ==============================================================================
+
+# --- InfluxDB Cloud Instance ---
+db_instance_name  = "sentinel-influx-instance"
+db_username       = "admin"
+db_password       = "secure-db-password"
+organization_name = "sentinel-org"
+bucket_name       = "mission"
+
+# --- Cloud Hardware & Storage ---
 allocated_storage   = 20
 db_instance_type    = "db.influx.medium"
 publicly_accessible = true
-
-# IoT Core Configuration
-thing_name      = "USV-001"
-iot_policy_name = "sentinel-hmi-policy"
-
-# Lambda Function Configuration
-lambda_function_name = "iot-to-influxdb"
