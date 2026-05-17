@@ -20,7 +20,7 @@ interface ReportGeneratorModalProps {
 
 export default function ReportGeneratorModal({ open, onOpenChange, trigger }: ReportGeneratorModalProps) {
   const [internalOpen, setInternalOpen] = useState(false);
-  
+
   const isOpen = open !== undefined ? open : internalOpen;
   const setIsOpen = onOpenChange !== undefined ? onOpenChange : setInternalOpen;
   const [loading, setLoading] = useState(false);
@@ -29,7 +29,7 @@ export default function ReportGeneratorModal({ open, onOpenChange, trigger }: Re
   const [missions, setMissions] = useState<any[]>([]);
   const [selectedMission, setSelectedMission] = useState('');
   const { accessToken } = useAuth();
-  
+
   useEffect(() => {
     if (isOpen && accessToken) {
       fetchMissions();
@@ -55,16 +55,16 @@ export default function ReportGeneratorModal({ open, onOpenChange, trigger }: Re
 
   const handleGenerate = async () => {
     if (!accessToken || !selectedMission) return;
-    
+
     setLoading(true);
     setError('');
-    
+
     try {
       const blob = await dataAPI.generateReport(
-        selectedMission, 
+        selectedMission,
         accessToken
       );
-      
+
       // Crear URL para el blob y descargar
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -74,7 +74,7 @@ export default function ReportGeneratorModal({ open, onOpenChange, trigger }: Re
       a.download = `Reporte_IA_Mision_${selectedMission}.pdf`;
       document.body.appendChild(a);
       a.click();
-      
+
       // Limpiar
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
@@ -107,7 +107,7 @@ export default function ReportGeneratorModal({ open, onOpenChange, trigger }: Re
             Selecciona una misión finalizada para generar un análisis avanzado de los sensores y gráficos de tendencias en PDF.
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="grid gap-4 py-4">
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium">Misión</label>
@@ -116,8 +116,8 @@ export default function ReportGeneratorModal({ open, onOpenChange, trigger }: Re
             ) : missions.length === 0 ? (
               <p className="text-sm text-muted-foreground">No hay misiones disponibles.</p>
             ) : (
-              <select 
-                value={selectedMission} 
+              <select
+                value={selectedMission}
                 onChange={(e) => setSelectedMission(e.target.value)}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
               >
@@ -129,17 +129,17 @@ export default function ReportGeneratorModal({ open, onOpenChange, trigger }: Re
               </select>
             )}
           </div>
-          
+
           {error && <p className="text-sm text-red-500">{error}</p>}
         </div>
-        
+
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={() => setIsOpen(false)}>
             Cancelar
           </Button>
-          <Button 
-            onClick={handleGenerate} 
-            disabled={loading || missions.length === 0 || !selectedMission} 
+          <Button
+            onClick={handleGenerate}
+            disabled={loading || missions.length === 0 || !selectedMission}
             className="bg-blue-600 hover:bg-blue-700"
           >
             {loading ? 'Generando PDF...' : 'Generar PDF'}

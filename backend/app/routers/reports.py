@@ -172,3 +172,58 @@ def generate_report(mission_id: str = Query(...), db: Session = Depends(get_db),
     return Response(content=pdf_bytes, media_type="application/pdf", headers={
         "Content-Disposition": f"attachment; filename=Reporte_Mision_{mission.id}.pdf"
     })
+
+@router.post("/generate_csv")
+def generate_csv_report(mission_id: str = Query(...), db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    mission = db.query(Mission).filter(Mission.id == mission_id).first()
+    if not mission:
+        raise HTTPException(status_code=404, detail="Misión no encontrada")
+
+    try:
+        client = InfluxDBClient(url=settings.INFLUXDB_URL, token=settings.INFLUXDB_TOKEN, org=settings.INFLUXDB_ORG)
+        query_api = client.query_api()
+
+        # Usar un rango más amplio si es necesario, o depender solo de mission_id
+        query = f'''
+            from(bucket: "{settings.INFLUXDB_BUCKET}")
+            |> range(start: -30d)
+            |> filter(fn: (r) => r._measurement == "usv_telemetry")
+            |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+            |> filter(fn: (r) => r.mission_id == "{mission_id}")
+        '''
+        
+        tables = query_api.query(query, org=settings.INFLUXDB_ORG)
+        
+        data_dicts = []
+        for table in tables:
+            for record in table.records:
+                ts = record.get_time()
+                if ts:
+                    ts_bog = utc_to_bogota(ts.replace(tzinfo=None))
+                else:
+                    ts_bog = None
+
+                data_dicts.append({
+                    "timestamp": ts_bog,
+                    "temperatura_agua_c": record.values.get("temperatura_agua_c"),
+                    "ph_agua": record.values.get("ph_agua"),
+                    "turbidez_ntu": record.values.get("turbidez_ntu"),
+                })
+    except Exception as e:
+        print(f"DEBUG: Error in generate_csv: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error al consultar InfluxDB: {str(e)}")
+
+    if not data_dicts:
+        raise HTTPException(status_code=400, detail="No hay datos de sensores para esta misión en InfluxDB")
+
+    df = pd.DataFrame(data_dicts)
+    
+    # Crear CSV en memoria
+    csv_buffer = io.StringIO()
+    df.to_csv(csv_buffer, index=False)
+    csv_bytes = csv_buffer.getvalue().encode('utf-8')
+
+    return Response(content=csv_bytes, media_type="text/csv", headers={
+        "Content-Disposition": f"attachment; filename=Reporte_Mision_{mission.id}.csv"
+    })
+

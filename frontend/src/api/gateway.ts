@@ -281,4 +281,33 @@ export const dataAPI = {
 
     return response.blob();
   },
+
+  /**
+   * Genera un reporte CSV
+   */
+  generateCsvReport: async (missionId: string, accessToken: string) => {
+    const url = `/reports/generate_csv?mission_id=${encodeURIComponent(missionId)}`;
+    const endpoint = url.startsWith('http') ? url : `${cognitoConfig.apiGatewayUrl || '/api/v1'}${url}`;
+    
+    const headers: Record<string, string> = {};
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage =
+        errorData.detail ||
+        errorData.message ||
+        `HTTP ${response.status}: ${response.statusText}`;
+      throw new Error(errorMessage);
+    }
+
+    return response.blob();
+  },
 };

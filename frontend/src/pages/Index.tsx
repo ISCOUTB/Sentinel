@@ -6,7 +6,7 @@ import StatusBar from '@/components/StatusBar';
 import AlertNotification from '@/components/AlertNotification';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Trash2, MapPin, Play, Square, Power, ChevronDown, FileText } from "lucide-react";
+import { Trash2, MapPin, Play, Square, Power, ChevronDown, FileText, Moon, Sun } from "lucide-react";
 import ReportGeneratorModal from '@/components/ReportGeneratorModal';
 import {
   DropdownMenu,
@@ -34,6 +34,21 @@ const Index = () => {
   const [activeMissionId, setActiveMissionId] = useState<string | null>(null);
   const [isMissionPaused, setIsMissionPaused] = useState(false);
   const [loadingMission, setLoadingMission] = useState(false);
+  
+  // Theme State
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return document.documentElement.classList.contains('dark');
+  });
+
+  const toggleTheme = () => {
+    if (isDarkMode) {
+      document.documentElement.classList.remove('dark');
+      setIsDarkMode(false);
+    } else {
+      document.documentElement.classList.add('dark');
+      setIsDarkMode(true);
+    }
+  };
 
   useEffect(() => {
     let timer: any;
@@ -161,6 +176,45 @@ const Index = () => {
     }
   };
 
+  const handleDownloadCSV = async () => {
+    if (!accessToken) return;
+    setLoadingMission(true);
+    try {
+      let targetMissionId = activeMissionId;
+
+      if (!targetMissionId) {
+        const missions = await dataAPI.getMissions(accessToken);
+        const finishedMissions = missions.filter((m: any) => m.status === 'FINALIZADO');
+        if (finishedMissions.length > 0) {
+          targetMissionId = finishedMissions[0].id;
+        }
+      }
+
+      if (!targetMissionId) {
+        toast.error('No hay ninguna misión disponible para generar el reporte.');
+        return;
+      }
+
+      toast.info('Generando reporte CSV...');
+      const blob = await dataAPI.generateCsvReport(targetMissionId, accessToken);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `Reporte_Mision_${targetMissionId}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success('Reporte CSV descargado con éxito.');
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || 'Error al generar el reporte CSV');
+    } finally {
+      setLoadingMission(false);
+    }
+  };
+
   return (
     <div className="min-h-screen overflow-auto p-4 lg:h-screen lg:overflow-hidden lg:p-6 bg-background text-foreground flex flex-col">
       <div className="max-w-[1920px] mx-auto w-full flex-1 lg:h-full flex flex-col">
@@ -178,6 +232,14 @@ const Index = () => {
                 {formatDate(new Date())}
               </p>
             </div>
+            <Button
+              onClick={toggleTheme}
+              variant="ghost"
+              size="icon"
+              title={isDarkMode ? "Modo Claro" : "Modo Oscuro"}
+            >
+              {isDarkMode ? <Sun className="w-6 h-6" /> : <Moon className="w-6 h-6" />}
+            </Button>
             <Button
               onClick={handleLogout}
               variant="ghost"
@@ -302,10 +364,13 @@ const Index = () => {
                     <ReportGeneratorModal
                       trigger={
                         <div className="relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full">
-                          <FileText className="w-4 h-4 mr-2" /> Generar Reporte (IA)
+                          <FileText className="w-4 h-4 mr-2" /> Generar reporte (IA)
                         </div>
                       }
                     />
+                    <DropdownMenuItem onClick={handleDownloadCSV} disabled={loadingMission}>
+                      <FileText className="w-4 h-4 mr-2" /> Generar archivo (CSV)
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
