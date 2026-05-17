@@ -121,6 +121,7 @@ const Index = () => {
       await dataAPI.finishMission(activeMissionId, accessToken!);
       setActiveMissionId(null);
       setIsMissionPaused(false);
+      setMissionPoints([]); // Limpiar mapa
       toast.success('Misión finalizada correctamente.');
     } catch (err) {
       console.error(err);
