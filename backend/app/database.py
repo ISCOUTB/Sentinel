@@ -19,6 +19,14 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def get_db():
+    """
+    Genera y provee una sesión de base de datos relacional para cada petición HTTP.
+    
+    Cierra la sesión automáticamente una vez completada la petición.
+    
+    Yields:
+        Session: Sesión activa de SQLAlchemy para interactuar con MySQL.
+    """
     db = SessionLocal()
     try:
         yield db
@@ -26,5 +34,9 @@ def get_db():
         db.close()
 
 def create_tables():
-    """Crear todas las tablas definidas en los modelos."""
+    """
+    Crea todas las tablas definidas en los modelos declarativos de SQLAlchemy.
+    
+    Se invoca típicamente en el evento de inicio (startup) de la aplicación.
+    """
     Base.metadata.create_all(bind=engine)

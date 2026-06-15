@@ -1,3 +1,11 @@
+"""
+Modelos Declarativos de SQLAlchemy para la Base de Datos Relacional (MySQL).
+
+Representa el esquema relacional del sistema Sentinel, incluyendo usuarios locales,
+refresh tokens (para la expiración segura de JWTs locales), misiones y las lecturas de sensores
+ingestadas en tiempo real.
+"""
+
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, Float
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
@@ -6,6 +14,12 @@ from datetime import datetime
 Base = declarative_base()
 
 class User(Base):
+    """
+    Representa a un usuario registrado en el sistema.
+    
+    Admite tanto usuarios nativos (con contraseña encriptada localmente) como
+    usuarios enlazados con AWS Cognito (`cognito_sub`).
+    """
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -21,6 +35,11 @@ class User(Base):
     refresh_tokens = relationship("RefreshToken", back_populates="user")
 
 class RefreshToken(Base):
+    """
+    Almacena tokens de refresco (Refresh Tokens) generados localmente.
+    
+    Usado para invalidar/revocar sesiones activas durante el logout.
+    """
     __tablename__ = "refresh_tokens"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -33,6 +52,11 @@ class RefreshToken(Base):
     user = relationship("User", back_populates="refresh_tokens")
 
 class Mission(Base):
+    """
+    Representa una misión de navegación y muestreo del USV (Vehículo de Superficie No Tripulado).
+    
+    Almacena metadatos como el nombre, estado global de la trayectoria y marcas de tiempo.
+    """
     __tablename__ = "missions"
 
     id = Column(String(50), primary_key=True, index=True)
@@ -44,6 +68,12 @@ class Mission(Base):
     sensor_data = relationship("SensorData", back_populates="mission", cascade="all, delete-orphan")
 
 class SensorData(Base):
+    """
+    Almacena lecturas ambientales del USV persistidas localmente en la base de datos relacional.
+    
+    Contiene mediciones de temperatura, pH, turbidez, oxígeno disuelto y estado de batería.
+    Nota: Los datos detallados de series temporales de alta resolución también se envían a InfluxDB.
+    """
     __tablename__ = "sensor_data"
 
     id = Column(Integer, primary_key=True, index=True)

@@ -46,6 +46,11 @@ const initialState: IoTState = {
   publish: async () => { console.warn('MQTT not connected yet'); },
 };
 
+/**
+ * Reducer puro de React para gestionar de forma determinista el estado de telemetría IoT.
+ * 
+ * Filtra los datos MQTT y los distribuye según el tópico al que correspondan.
+ */
 function iotReducer(state: IoTState, action: IoTAction): IoTState {
   switch (action.type) {
     case 'SET_STATUS':
@@ -77,6 +82,16 @@ interface UseIoTConnectionParams {
 
 // ─── Hook ────────────────────────────────────────────────────────────────────
 
+/**
+ * Hook de bajo nivel que gestiona la conexión WebSocket con AWS IoT Core.
+ * 
+ * Implementa la conexión mediante firmas SigV4, realiza suscripciones automáticas
+ * a los tópicos de telemetría del USV, procesa y decodifica las tramas JSON recibidas,
+ * y expone una función para publicar órdenes MQTT de vuelta al vehículo.
+ * 
+ * @param params Parámetros de token e identificador del vehículo.
+ * @returns El estado consolidado IoT y la función `publish`.
+ */
 export function useIoTConnection({ idToken, thingName }: UseIoTConnectionParams): IoTState {
   const [state, dispatch] = useReducer(iotReducer, initialState);
 
@@ -84,6 +99,10 @@ export function useIoTConnection({ idToken, thingName }: UseIoTConnectionParams)
   const connectionRef = useRef<MqttConnection | null>(null);
 
   // Handler genérico de mensajes MQTT
+  /**
+   * Procesa las tramas de bytes recibidas de AWS IoT Core, las decodifica a UTF-8
+   * y las despacha al Reducer según el subsegmento del tópico.
+   */
   const handleMessage = useCallback(
     (topic: string, payload: ArrayBuffer) => {
       try {
@@ -115,6 +134,11 @@ export function useIoTConnection({ idToken, thingName }: UseIoTConnectionParams)
 
     let cancelled = false;
 
+    /**
+     * Establece la conexión asíncrona mediante el WebSocket presignado.
+     * Al conectarse con éxito, se suscribe a los tópicos `{thingName}/general_usv_status`,
+     * `{thingName}/mision` y `{thingName}/logs`.
+     */
     const connect = async () => {
       dispatch({ type: 'SET_STATUS', payload: 'connecting' });
       try {
@@ -159,6 +183,12 @@ export function useIoTConnection({ idToken, thingName }: UseIoTConnectionParams)
     };
   }, [idToken, thingName, handleMessage]);
 
+  /**
+   * Publica un mensaje serializado en JSON en un tópico de MQTT.
+   * 
+   * @param topic El tópico MQTT de destino.
+   * @param payload Objeto JSON que constituye el mensaje.
+   */
   const publish = useCallback(async (topic: string, payload: any) => {
     if (connectionRef.current) {
       const message = JSON.stringify(payload);

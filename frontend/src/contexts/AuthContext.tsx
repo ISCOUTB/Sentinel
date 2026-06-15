@@ -3,7 +3,13 @@ import { cognitoAuthService } from '@/services/cognitoAuthService';
 import { authAPI, UserResponse } from '@/api/gateway';
 import { cognitoConfig } from '@/config/cognito';
 
-// Helper para decodificar JWT y obtener el nombre completo
+// Helper para decodificar JWT de forma segura en el cliente
+/**
+ * Decodifica la sección payload de un token JWT en formato JSON.
+ * 
+ * @param token Token JWT serializado.
+ * @returns El payload decodificado como objeto JSON o null si ocurre un fallo.
+ */
 const parseJwt = (token: string) => {
   try {
     const base64Url = token.split('.')[1];
@@ -17,6 +23,13 @@ const parseJwt = (token: string) => {
   }
 };
 
+/**
+ * Obtiene el nombre completo del usuario leyendo los claims `given_name` y `family_name`
+ * o `name` presentes en el ID Token decodificado.
+ * 
+ * @param idToken ID Token firmado provisto por Cognito.
+ * @returns Nombre completo del usuario o null si no está disponible.
+ */
 const getFullNameFromToken = (idToken: string | null): string | null => {
   if (!idToken) return null;
   const payload = parseJwt(idToken);
@@ -32,7 +45,12 @@ const getFullNameFromToken = (idToken: string | null): string | null => {
   return payload.name || null;
 };
 
-// Obtiene el email del JWT payload
+/**
+ * Obtiene la dirección de correo electrónico a partir del claim `email` del ID Token.
+ * 
+ * @param idToken ID Token firmado provisto por Cognito.
+ * @returns Dirección de correo o null si no está disponible.
+ */
 const getEmailFromToken = (idToken: string | null): string | null => {
   if (!idToken) return null;
   const payload = parseJwt(idToken);
@@ -40,23 +58,37 @@ const getEmailFromToken = (idToken: string | null): string | null => {
   return payload.email || null;
 };
 
-// Interfaces
+/** Representa el estado interno de autenticación de la aplicación */
 interface AuthState {
+  /** Respuesta de perfil de usuario devuelta por el servidor FastAPI */
   user: UserResponse | null;
+  /** Nombre de usuario o identificador principal */
   username: string | null;
+  /** Nombre completo del usuario (nombre + apellido) */
   fullName: string | null;
+  /** Token de acceso JWT (local o de Cognito) */
   accessToken: string | null;
+  /** ID Token provisto por AWS Cognito (contiene los claims de perfil) */
   idToken: string | null;
+  /** Token de refresco de sesión */
   refreshToken: string | null;
+  /** Flag que indica si se está cargando o inicializando la sesión */
   isLoading: boolean;
+  /** Flag que indica si la sesión del usuario está activa */
   isAuthenticated: boolean;
-  useCognito: boolean; // Determina si usamos Cognito o autenticación backend
+  /** Determina si se está utilizando Cognito (true) o autenticación local (false) */
+  useCognito: boolean;
 }
 
+/** Representa las funciones expuestas por el contexto de autenticación */
 interface AuthContextType extends AuthState {
+  /** Inicia sesión mediante nombre de usuario y contraseña */
   login: (username: string, password: string) => Promise<void>;
+  /** Registra una cuenta nueva con atributos extendidos */
   register: (username: string, email: string, password: string, name?: string, lastName?: string) => Promise<void>;
+  /** Cierra la sesión activa y limpia tokens del almacenamiento */
   logout: () => Promise<void>;
+  /** Refresca el token de acceso utilizando el refresh token */
   refreshAccessToken: () => Promise<void>;
 }
 
@@ -64,6 +96,13 @@ interface AuthContextType extends AuthState {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Provider
+/**
+ * Proveedor del Contexto de Autenticación.
+ * 
+ * Gestiona el ciclo de vida de la sesión cargando credenciales de localStorage al arrancar,
+ * interactuando con Cognito o local backend según la configuración, y exponiendo estados
+ * interactivos a la aplicación.
+ */
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   // Detectar si Cognito está disponible
   const useCognito = !!(cognitoConfig.userPoolId && cognitoConfig.userPoolWebClientId);
@@ -344,10 +383,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 };
 
 // Hook para usar el contexto
+/**
+ * Hook personalizado para consumir el contexto de autenticación en cualquier componente hijo.
+ * 
+ * @returns El contexto de autenticación global.
+ * @throws Error si se invoca por fuera del `AuthProvider`.
+ */
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth debe ser usado dentro de un AuthProvider');
   }
   return context;
+};text;
 };

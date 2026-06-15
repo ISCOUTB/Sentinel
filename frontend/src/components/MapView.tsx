@@ -68,6 +68,12 @@ function ThickAxes({ length = 2.5, thickness = 0.06 }) {
 }
 
 // ─── Modelo GLB con orientación real ─────────────────────────────────────────
+// ─── Modelo GLB con orientación real ─────────────────────────────────────────
+/**
+ * Renderiza el modelo 3D cargado de `/boat.glb` orientado por la telemetría.
+ * 
+ * @param props Contiene yaw, roll y pitch en grados.
+ */
 function BoatGLBOriented({ yaw, roll, pitch }: { yaw: number; roll: number; pitch: number }) {
   const { scene } = useGLTF('/boat.glb');
   const ref = useRef<THREE.Object3D>(scene);
@@ -104,6 +110,19 @@ function BoatGLBOriented({ yaw, roll, pitch }: { yaw: number; roll: number; pitc
 }
 
 // ─── Función para validar el color del píxel del mapa ────────────────────────
+/**
+ * Valida visualmente si las coordenadas del click corresponden al agua.
+ * 
+ * Convierte latitud/longitud a coordenadas de OSM Tile, descarga el fragmento
+ * de imagen (Tile de 256x256), lo dibuja en un Canvas en memoria y analiza
+ * el color RGB del píxel correspondiente a la selección del usuario.
+ * El agua en OpenStreetMap posee tonos azulados específicos dentro de la tolerancia configurada.
+ * 
+ * @param lat Latitud seleccionada.
+ * @param lng Longitud seleccionada.
+ * @param zoom Nivel de zoom actual del mapa Leaflet.
+ * @returns Promesa que se resuelve a `true` si el color del píxel detectado corresponde a agua.
+ */
 function checkWaterColor(lat: number, lng: number, zoom: number): Promise<boolean> {
   return new Promise((resolve) => {
     // 1. Matemáticas para convertir lat/lng a coordenadas de Tile de OSM
@@ -157,6 +176,13 @@ function checkWaterColor(lat: number, lng: number, zoom: number): Promise<boolea
 }
 
 // ─── Componente para manejar clicks en el mapa ───────────────────────────────
+/**
+ * Manejador de eventos de Leaflet para capturar los clics del usuario.
+ * 
+ * Si el modo de edición de ruta está activo (`isSelectingPoints`), ejecuta la
+ * validación visual en el color del tile para asegurar que el punto se sitúe
+ * estrictamente en el agua antes de añadirlo.
+ */
 function MapClickHandler({
   isSelectingPoints,
   onAddPoint
@@ -186,11 +212,23 @@ function MapClickHandler({
 // ─── Componente principal ─────────────────────────────────────────────────────
 
 interface MapViewProps {
+  /** Puntos definidos para la ruta de la misión actual */
   missionPoints?: MissionPoint[];
+  /** Flag que indica si el usuario está seleccionando waypoints de forma activa */
   isSelectingPoints?: boolean;
+  /** Callback invocado cuando el usuario hace un clic válido sobre el agua */
   onAddPoint?: (lat: number, lng: number) => void;
 }
 
+/**
+ * Componente de Vista del Mapa del HMI.
+ * 
+ * Integra Leaflet (2D) para visualizar la cartografía de OpenStreetMap,
+ * representar la ubicación en tiempo real del USV y trazar las rutas de waypoints.
+ * Adicionalmente, incluye un Canvas superpuesto en Three.js (3D) que renderiza
+ * la orientación física del USV (cabeceo, balanceo y guiñada) suavizada
+ * con interpolación lineal basada en el giroscopio de a bordo.
+ */
 export default function MapView({
   missionPoints = [],
   isSelectingPoints = false,

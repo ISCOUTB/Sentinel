@@ -22,21 +22,28 @@ import getpass
 from typing import Optional, Dict, Any
 
 class AuthTestClient:
+    """
+    Cliente HTTP interactivo para pruebas rápidas de la API de Autenticación de Sentinel.
+    
+    Gestiona internamente el estado de los tokens JWT de acceso y refresco para facilitar
+    la encadenación de solicitudes a endpoints protegidos.
+    """
     def __init__(self, base_url: str = "http://localhost:8000"):
+        """Inicializa la sesión HTTP y el almacenamiento temporal de tokens."""
         self.base_url = base_url.rstrip('/')
         self.access_token: Optional[str] = None
         self.refresh_token: Optional[str] = None
         self.session = requests.Session()
 
     def _get_headers(self, use_auth: bool = True) -> Dict[str, str]:
-        """Obtener headers para las peticiones."""
+        """Genera las cabeceras HTTP inyectando la autenticación Bearer si está activa."""
         headers = {'Content-Type': 'application/json'}
         if use_auth and self.access_token:
             headers['Authorization'] = f'Bearer {self.access_token}'
         return headers
 
     def _make_request(self, method: str, endpoint: str, data: Optional[Dict] = None, use_auth: bool = True) -> Dict[str, Any]:
-        """Hacer una petición HTTP."""
+        """Realiza una petición HTTP utilizando requests y retorna la respuesta en formato JSON."""
         url = f"{self.base_url}{endpoint}"
         headers = self._get_headers(use_auth)
 
@@ -64,7 +71,9 @@ class AuthTestClient:
             return {'error': f'Error de conexión: {str(e)}'}
 
     def register(self, username: str, email: str, password: str, role: str = "user") -> Dict[str, Any]:
-        """Registrar un nuevo usuario."""
+        """
+        Envía una solicitud para registrar un nuevo usuario local.
+        """
         data = {
             "username": username,
             "email": email,
@@ -74,7 +83,9 @@ class AuthTestClient:
         return self._make_request('POST', '/api/v1/auth/register', data, use_auth=False)
 
     def login(self, username: str, password: str) -> Dict[str, Any]:
-        """Iniciar sesión."""
+        """
+        Envía las credenciales al endpoint de login y almacena los tokens JWT resultantes.
+        """
         data = {
             "username": username,
             "password": password
@@ -89,7 +100,9 @@ class AuthTestClient:
         return result
 
     def refresh_token(self) -> Dict[str, Any]:
-        """Refrescar el token de acceso."""
+        """
+        Solicita un nuevo token de acceso enviando el token de refresco local.
+        """
         if not self.refresh_token:
             return {'error': 'No hay refresh token disponible. Inicia sesión primero.'}
 
@@ -117,14 +130,18 @@ class AuthTestClient:
             return {'error': f'Error de conexión: {str(e)}'}
 
     def get_me(self) -> Dict[str, Any]:
-        """Obtener información del usuario actual."""
+        """
+        Consulta la información del perfil del usuario actual.
+        """
         if not self.access_token:
             return {'error': 'No hay token de acceso. Inicia sesión primero.'}
 
         return self._make_request('GET', '/api/v1/auth/me')
 
     def logout(self) -> Dict[str, Any]:
-        """Cerrar sesión."""
+        """
+        Cierra sesión invalidando el refresh token y limpiando los tokens en memoria.
+        """
         if not self.refresh_token:
             return {'error': 'No hay refresh token disponible. Inicia sesión primero.'}
 
@@ -153,7 +170,7 @@ class AuthTestClient:
             return {'error': f'Error de conexión: {str(e)}'}
 
     def show_status(self) -> None:
-        """Mostrar el estado actual de autenticación."""
+        """Imprime por consola el estado de disponibilidad de los tokens en memoria."""
         print("\n📊 Estado de autenticación:")
         if self.access_token:
             print("✅ Access Token: Presente")
@@ -167,7 +184,7 @@ class AuthTestClient:
         print()
 
 def print_help():
-    """Mostrar ayuda."""
+    """Imprime el menú de ayuda con los comandos CLI interactivos disponibles."""
     print("""
 🤖 Cliente de Prueba para USV HMI Backend
 

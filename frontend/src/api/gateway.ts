@@ -36,8 +36,17 @@ export interface RefreshTokenRequest {
 }
 
 /**
- * Realiza una solicitud HTTP a través del API Gateway
- * Incluye automáticamente el token de autenticación si está disponible
+ * Realiza una solicitud HTTP estructurada hacia la API del backend.
+ * 
+ * Configura de forma transparente las cabeceras requeridas, el modo CORS y
+ * la cabecera `Authorization: Bearer <token>` si se suministra un token de acceso activo.
+ * 
+ * @template T Estructura de tipo esperada en la respuesta JSON.
+ * @param endpoint Ruta relativa del recurso (p. ej. `/auth/me`).
+ * @param options Parámetros de configuración nativos del `fetch` API.
+ * @param accessToken Token JWT de acceso (opcional).
+ * @returns Promesa que se resuelve con la respuesta tipada del servidor.
+ * @throws Error conteniendo el detalle del mensaje de fallo si la respuesta no es exitosa (ok = false).
  */
 export async function apiRequest<T>(
   endpoint: string,
@@ -86,11 +95,13 @@ export async function apiRequest<T>(
 }
 
 /**
- * API para operaciones de autenticación a través del API Gateway
+ * Agrupación de operaciones REST para la autenticación y perfiles de usuario.
  */
 export const authAPI = {
   /**
-   * Registra un nuevo usuario
+   * Registra un nuevo usuario local en el backend.
+   * 
+   * @param userData Atributos del nuevo usuario.
    */
   register: async (userData: UserCreate): Promise<UserResponse> => {
     return apiRequest<UserResponse>('/auth/register', {
@@ -100,8 +111,12 @@ export const authAPI = {
   },
 
   /**
-   * Inicia sesión (para usuarios que usan autenticación del backend)
-   * Note: Con Cognito, usarás cognitoAuthService.login() en su lugar
+   * Valida credenciales e inicia sesión local (Desarrollo).
+   * 
+   * Nota: Si se utiliza el modo de producción con AWS Cognito,
+   * se debe usar la instancia `cognitoAuthService` en su lugar.
+   * 
+   * @param credentials Nombre de usuario y contraseña local.
    */
   login: async (credentials: UserLogin): Promise<TokenResponse> => {
     return apiRequest<TokenResponse>('/auth/login', {
@@ -111,7 +126,9 @@ export const authAPI = {
   },
 
   /**
-   * Refresca el access token
+   * Obtiene un nuevo token de acceso a partir del refresh token local.
+   * 
+   * @param refreshToken Token JWT de refresco local.
    */
   refresh: async (refreshToken: string): Promise<TokenResponse> => {
     return apiRequest<TokenResponse>('/auth/refresh', {
@@ -121,7 +138,9 @@ export const authAPI = {
   },
 
   /**
-   * Cierra sesión
+   * Notifica al servidor backend la revocación de la sesión actual.
+   * 
+   * @param refreshToken Token JWT de refresco a invalidar.
    */
   logout: async (refreshToken: string): Promise<{ message: string }> => {
     return apiRequest<{ message: string }>('/auth/logout', {
@@ -131,7 +150,9 @@ export const authAPI = {
   },
 
   /**
-   * Obtiene los datos del usuario actual
+   * Recupera el perfil completo del usuario autenticado en la solicitud actual.
+   * 
+   * @param accessToken Token de acceso del portador.
    */
   getMe: async (accessToken: string): Promise<UserResponse> => {
     return apiRequest<UserResponse>(
@@ -145,11 +166,13 @@ export const authAPI = {
 };
 
 /**
- * API para operaciones de datos
+ * Agrupación de operaciones REST para la consulta de sensores, mapas, control de misiones y descargas de reportes.
  */
 export const dataAPI = {
   /**
-   * Obtiene todos los sensores
+   * Obtiene la lectura agregada actual de sensores (Simulado).
+   * 
+   * @param accessToken Token de acceso del portador.
    */
   getSensors: async (accessToken: string) => {
     return apiRequest(
@@ -162,7 +185,10 @@ export const dataAPI = {
   },
 
   /**
-   * Obtiene datos de un sensor específico
+   * Obtiene la lectura histórica de un sensor específico.
+   * 
+   * @param sensorId Identificador del sensor.
+   * @param accessToken Token de acceso del portador.
    */
   getSensorData: async (sensorId: string, accessToken: string) => {
     return apiRequest(
@@ -175,7 +201,9 @@ export const dataAPI = {
   },
 
   /**
-   * Obtiene datos de ubicación
+   * Obtiene la ubicación GPS actual y modo de renderizado (Simulado).
+   * 
+   * @param accessToken Token de acceso.
    */
   getMapData: async (accessToken: string) => {
     return apiRequest(
@@ -188,7 +216,9 @@ export const dataAPI = {
   },
 
   /**
-   * Obtiene la lista de misiones
+   * Obtiene el listado histórico de misiones registradas.
+   * 
+   * @param accessToken Token de acceso.
    */
   getMissions: async (accessToken: string) => {
     return apiRequest<any[]>(
@@ -201,7 +231,11 @@ export const dataAPI = {
   },
 
   /**
-   * Crea una nueva misión
+   * Registra e inicia una nueva misión enviando la colección de waypoints al backend.
+   * 
+   * @param name Nombre personalizado para identificar la misión.
+   * @param points Colección de coordenadas (latitud, longitud) del recorrido.
+   * @param accessToken Token de acceso del portador.
    */
   createMission: async (name: string, points: {lat: number, lng: number}[], accessToken: string) => {
     return apiRequest<any>(
@@ -215,7 +249,10 @@ export const dataAPI = {
   },
 
   /**
-   * Finaliza una misión
+   * Solicita al backend finalizar una misión activa.
+   * 
+   * @param missionId Identificador único de la misión.
+   * @param accessToken Token de acceso.
    */
   finishMission: async (missionId: string, accessToken: string) => {
     return apiRequest<any>(
@@ -228,7 +265,10 @@ export const dataAPI = {
   },
 
   /**
-   * Pausa una misión
+   * Envía la orden para pausar una misión activa.
+   * 
+   * @param missionId Identificador único de la misión.
+   * @param accessToken Token de acceso.
    */
   pauseMission: async (missionId: string, accessToken: string) => {
     return apiRequest<any>(
@@ -241,7 +281,10 @@ export const dataAPI = {
   },
 
   /**
-   * Reanuda una misión
+   * Envía la orden para reanudar una misión pausada.
+   * 
+   * @param missionId Identificador único de la misión.
+   * @param accessToken Token de acceso.
    */
   resumeMission: async (missionId: string, accessToken: string) => {
     return apiRequest<any>(
@@ -254,7 +297,13 @@ export const dataAPI = {
   },
 
   /**
-   * Genera un reporte PDF con IA
+   * Solicita la compilación y descarga del reporte ejecutivo PDF estructurado con IA (Gemini).
+   * 
+   * Abre la conexión de red y recupera la respuesta HTTP directa como un objeto `Blob` binario.
+   * 
+   * @param missionId Identificador único de la misión finalizada.
+   * @param accessToken Token de acceso.
+   * @returns El archivo binario PDF resultante en formato Blob.
    */
   generateReport: async (missionId: string, accessToken: string) => {
     const url = `/reports/generate?mission_id=${encodeURIComponent(missionId)}`;
@@ -283,7 +332,11 @@ export const dataAPI = {
   },
 
   /**
-   * Genera un reporte CSV
+   * Descarga el reporte histórico consolidado de lecturas en formato CSV.
+   * 
+   * @param missionId Identificador único de la misión.
+   * @param accessToken Token de acceso.
+   * @returns El archivo plano de texto en formato Blob.
    */
   generateCsvReport: async (missionId: string, accessToken: string) => {
     const url = `/reports/generate_csv?mission_id=${encodeURIComponent(missionId)}`;

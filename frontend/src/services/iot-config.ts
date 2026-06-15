@@ -36,8 +36,24 @@ export type MqttConnection = mqtt.MqttClientConnection;
 // ─── Función principal de conexión ────────────────────────────────────────────
 
 /**
- * Crea y conecta un cliente MQTT a AWS IoT Core usando credenciales
- * temporales de Cognito Identity Pool.
+ * Crea, configura y conecta un cliente MQTT a AWS IoT Core.
+ * 
+ * Flujo detallado del servicio:
+ * 1. Utiliza el ID Token del usuario autenticado en Cognito User Pool para realizar un intercambio
+ *    con Cognito Identity Pool (mediante `GetIdCommand`), resolviendo el identificador `IdentityId` único.
+ * 2. Obtiene credenciales temporales firmadas de AWS (Access Key ID, Secret Access Key y Session Token)
+ *    utilizando el proveedor `fromCognitoIdentityPool`.
+ * 3. Asocia la política de seguridad requerida de IoT Core al `IdentityId` obtenido en el paso 1 mediante
+ *    el SDK de AWS (`AttachPolicyCommand`), asegurando que las credenciales temporales tengan permisos de
+ *    suscripción y publicación sobre los tópicos del Thing de IoT Core.
+ * 4. Configura el conector MQTT presignado para WebSocket aplicando firmas SigV4 (Signature Version 4)
+ *    sobre la URL del WebSocket (`wss://endpoint/mqtt`).
+ * 5. Instancia el cliente de MqttClient de aws-iot-device-sdk-v2 e inicia el proceso de conexión
+ *    bajo una condición de carrera (`Promise.race`) con un timeout límite de 10 segundos.
+ * 
+ * @param idToken ID Token firmado provisto tras la autenticación con Cognito User Pool.
+ * @returns Promesa que se resuelve con la conexión de MQTT (`MqttConnection`) lista para suscribirse/publicar.
+ * @throws Error si faltan variables de entorno esenciales o si ocurre una falla en el aprovisionamiento.
  */
 export async function createIoTConnection(idToken: string): Promise<MqttConnection> {
   if (!IOT_ENDPOINT || !IDENTITY_POOL_ID || !USER_POOL_ID) {

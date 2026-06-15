@@ -4,14 +4,24 @@
  * Centralized logic to handle messy IoT data and prevent UI crashes.
  */
 
-/** Verifies if a value is a finite number */
+/** 
+ * Verifica si un valor provisto corresponde a un número finito válido.
+ * 
+ * @param n Valor a evaluar.
+ * @returns True si el valor es numérico y finito.
+ */
 export const isValidCoord = (n: any): n is number => {
   return typeof n === 'number' && Number.isFinite(n);
 };
 
 /** 
- * Safely formats a numeric value to a string with decimals.
- * Returns '0.0' or equivalent if the value is invalid.
+ * Convierte un valor de forma segura a una representación textual con decimales configurados.
+ * 
+ * Si el valor no es numérico o es inválido, retorna el equivalente formateado de cero.
+ * 
+ * @param n Valor a formatear.
+ * @param decimals Cantidad de decimales requeridos.
+ * @returns Representación de cadena del número decimal.
  */
 export const safeVal = (n: any, decimals = 1): string => {
   if (typeof n === 'number' && Number.isFinite(n)) {
@@ -21,7 +31,13 @@ export const safeVal = (n: any, decimals = 1): string => {
 };
 
 /**
- * Ensures a latitude/longitude pair is valid for Leaflet.
+ * Valida si un par de coordenadas (latitud y longitud) se encuentran dentro de los rangos reales de la Tierra.
+ * 
+ * Latitud: [-90, 90] grados. Longitud: [-180, 180] grados.
+ * 
+ * @param lat Latitud.
+ * @param lng Longitud.
+ * @returns True si la coordenada es válida.
  */
 export const isLatLngValid = (lat: any, lng: any): boolean => {
   return isValidCoord(lat) && isValidCoord(lng) && 

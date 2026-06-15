@@ -29,6 +29,14 @@ const levelConfig = {
 
 // ─── Componente ───────────────────────────────────────────────────────────────
 
+/**
+ * Notificación Emergente de Alertas de Telemetría.
+ * 
+ * Se suscribe al historial de logs. Al detectar entradas recientes con niveles de
+ * severidad `WARN` o `ERROR`, despliega una tarjeta flotante en la esquina inferior izquierda
+ * de la interfaz con detalles del suceso, código de error e identificador del USV.
+ * Incluye un temporizador que oculta de forma automática la tarjeta tras 8 segundos.
+ */
 const AlertNotification = () => {
   const { logs } = useIoTData();
 

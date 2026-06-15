@@ -23,11 +23,21 @@ const invisibleIcon = L.divIcon({
 export type MissionPoint = { lat: number; lng: number };
 
 interface MissionRouteProps {
+  /** Colección de waypoints que conforman la misión */
   missionPoints: MissionPoint[];
+  /** Callback para notificar cambios en la distancia acumulada de la trayectoria en metros */
   onTotalDistanceChange?: (dist: number) => void;
+  /** Índice de navegación del waypoint que el USV está persiguiendo actualmente */
   currentWaypointIndex?: number;
 }
 
+/**
+ * Componente modular encargado de trazar la ruta de la misión sobre el mapa Leaflet.
+ * 
+ * Calcula la distancia total geodésica acumulada en metros entre segmentos consecutivos
+ * y renderiza polilíneas de distintos colores (gris para segmentos completados,
+ * azul para restantes) y marcadores dinámicos para indicar waypoints.
+ */
 export default function MissionRoute({ 
   missionPoints, 
   onTotalDistanceChange,

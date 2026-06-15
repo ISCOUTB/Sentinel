@@ -1,3 +1,11 @@
+"""
+Dependencias de Autenticación de FastAPI (AWS Cognito e Inyección de Usuario).
+
+Contiene la lógica para recuperar y almacenar en caché las claves públicas (JWKS) de Cognito,
+verificar la firma de tokens JWT usando firmas RS256, y recuperar o inicializar de forma
+dinámica el registro del usuario en la base de datos relacional MySQL.
+"""
+
 from fastapi import Request, HTTPException, Depends
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -7,11 +15,23 @@ import requests
 from jose import jwt, JWTError
 
 
+# Caché global para almacenar la respuesta JWKS de AWS Cognito y reducir latencia de red.
 _jwks_cache = None
 _jwks_cache_time = None
 
 def get_jwks():
-    """Get Cognito public keys for JWT verification"""
+    """
+    Recupera el conjunto de claves web de JSON (JWKS) públicas de AWS Cognito.
+    
+    Implementa almacenamiento en caché en memoria durante 1 hora (3600 segundos) para
+    evitar peticiones de red repetitivas en cada solicitud HTTP protegida.
+    
+    Returns:
+        dict: Claves públicas en formato JWKS.
+        
+    Raises:
+        HTTPException (500): Si falla la conexión de red con el Identity Provider de AWS.
+    """
     global _jwks_cache, _jwks_cache_time
     import time
     
@@ -33,7 +53,24 @@ def get_jwks():
         raise HTTPException(status_code=500, detail=f"Failed to get Cognito keys: {str(e)}")
 
 def verify_cognito_token(token: str) -> dict:
-    """Verify Cognito JWT token"""
+    """
+    Decodifica y valida un token JWT provisto por AWS Cognito.
+    
+    Verifica:
+    - La existencia del identificador de clave pública (kid).
+    - La firma criptográfica usando el algoritmo RS256 de Cognito.
+    - El emisor del token (iss) esperado.
+    - El cliente de aplicación receptor del token (aud o client_id según sea IdToken o AccessToken).
+    
+    Args:
+        token (str): Token JWT serializado.
+        
+    Returns:
+        dict: El payload decodificado del token si la validación es correcta.
+        
+    Raises:
+        HTTPException (401): Si alguna de las verificaciones de seguridad falla.
+    """
     try:
         unverified = jwt.get_unverified_header(token)
         kid = unverified.get("kid")
@@ -92,7 +129,27 @@ def get_current_user(
     request: Request,
     db: Session = Depends(get_db)
 ):
-  
+    """
+    Dependencia de FastAPI para obtener y validar el usuario de la solicitud actual.
+    
+    Admite dos flujos de autenticación:
+    1. Cabeceras inyectadas por API Gateway (`x-user-sub`, `x-user-email`, `x-user-role`).
+    2. Verificación directa leyendo la cabecera `Authorization: Bearer <token>` y
+       validando el token contra AWS Cognito (útil en desarrollo local).
+       
+    Si el usuario verificado por Cognito no se encuentra en la base de datos MySQL local,
+    lo crea de manera dinámica (Just-In-Time provision) utilizando el correo o un fallback.
+    
+    Args:
+        request (Request): Objeto de petición HTTP de FastAPI.
+        db (Session): Sesión de la base de datos.
+        
+    Returns:
+        dict: Un diccionario con el sub de Cognito, email, roles y el objeto de usuario `User` de la base de datos local.
+        
+    Raises:
+        HTTPException (401): Si no se provee un token válido o cabeceras válidas.
+    """
     sub = request.headers.get("x-user-sub")
     email = request.headers.get("x-user-email")
     roles = request.headers.get("x-user-role")
@@ -115,7 +172,7 @@ def get_current_user(
     
     user = db.query(User).filter(User.cognito_sub == sub).first()
 
-    # If the user existed before Cognito linkage, associate by email when available.
+    # Si el usuario ya existía antes del enlace con Cognito, asociarlo por correo.
     if not user and email:
         user = db.query(User).filter(User.email == email).first()
         if user and not user.cognito_sub:
@@ -124,6 +181,7 @@ def get_current_user(
             db.commit()
             db.refresh(user)
 
+    # Si no existe, crear el usuario dinámicamente en MySQL
     if not user and sub:
         username_fallback = email.split("@")[0] if email else f"cognito_{sub[:8]}"
         user = User(

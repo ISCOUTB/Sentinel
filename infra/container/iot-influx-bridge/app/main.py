@@ -1,3 +1,11 @@
+"""
+Puente IoT (AWS IoT Core MQTT -> InfluxDB v2 TSDB).
+
+Suscribe al broker MQTT de AWS IoT Core para recibir datos de telemetría en tiempo real,
+los analiza, los transforma en Line Protocol de InfluxDB y los escribe en la base de datos de
+series temporales, creando dinámicamente los buckets necesarios si no existen.
+"""
+
 import base64
 import json
 import os
@@ -83,6 +91,17 @@ def load_config() -> BridgeConfig:
 
 
 def get_influx_cookie(url: str, username: str, password: str) -> Optional[str]:
+    """
+    Autentica contra InfluxDB v2 mediante Basic Auth y obtiene una cookie de sesión activa.
+    
+    Args:
+        url (str): URL base de InfluxDB.
+        username (str): Nombre del administrador local de InfluxDB.
+        password (str): Contraseña.
+        
+    Returns:
+        Optional[str]: La cookie de sesión (Set-Cookie) obtenida, o None.
+    """
     if url.endswith("/"):
         url = url[:-1]
 
@@ -111,6 +130,17 @@ def write_to_influxdb(
     password: str,
     point_line: str,
 ) -> None:
+    """
+    Escribe una lectura formateada en Line Protocol en InfluxDB v2 usando cookies de sesión.
+    
+    Args:
+        url (str): URL base de InfluxDB.
+        org (str): Organización de InfluxDB.
+        bucket (str): Nombre del bucket de destino.
+        username (str): Usuario.
+        password (str): Contraseña.
+        point_line (str): Lectura formateada en Influx Line Protocol.
+    """
     global cached_cookie
 
     if not cached_cookie:
@@ -191,6 +221,12 @@ def get_org_id(url: str, username: str, password: str, org_name: str) -> str:
 
 
 def ensure_bucket_exists(url: str, org: str, bucket: str, username: str, password: str) -> None:
+    """
+    Verifica la existencia del bucket en InfluxDB v2.
+    
+    Si el bucket no existe en la organización, realiza una petición POST
+    al API de InfluxDB para crearlo automáticamente sin intervención manual.
+    """
     global cached_cookie
 
     if bucket in known_buckets:
@@ -280,6 +316,16 @@ def collect_scalar_fields(prefix: str, value: object, fields: list[str]) -> None
 
 
 def build_line_protocol(payload: Dict[str, object]) -> Optional[str]:
+    """
+    Transforma un payload JSON plano o anidado del USV en una línea compatible con InfluxDB Line Protocol.
+    
+    Establece la medición como 'usv_telemetry', añade 'device_id' y opcionalmente
+    'mission_id' como etiquetas indexadas (tags), e itera recursivamente las lecturas numéricas
+    y strings para mapearlas como campos (fields).
+    
+    Returns:
+        Optional[str]: La línea de protocolo construida, o None si no hay campos legibles.
+    """
     measurement = "usv_telemetry"
     device_id = str(
         payload.get("device_id")

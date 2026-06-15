@@ -13,11 +13,21 @@ import { dataAPI } from '@/api/gateway';
 import { FileText } from 'lucide-react';
 
 interface ReportGeneratorModalProps {
+  /** Indica si el diálogo está abierto de manera externa */
   open?: boolean;
+  /** Callback para sincronizar cambios de apertura */
   onOpenChange?: (open: boolean) => void;
+  /** Componente desencadenador (trigger) personalizado */
   trigger?: React.ReactNode;
 }
 
+/**
+ * Componente de Modal para la Generación de Reportes con IA en PDF.
+ * 
+ * Presenta un listado de misiones históricas para permitir que el operador
+ * seleccione una misión finalizada y llame al endpoint correspondiente para
+ * generar, descargar y compilar en local el PDF del reporte ejecutivo estructurado con Gemini.
+ */
 export default function ReportGeneratorModal({ open, onOpenChange, trigger }: ReportGeneratorModalProps) {
   const [internalOpen, setInternalOpen] = useState(false);
 

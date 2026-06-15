@@ -6,6 +6,18 @@ import { safeVal } from '@/utils/validators';
 
 // ─── Icon mapping ─────────────────────────────────────────────────────────────
 
+// ─── Componente Principal ─────────────────────────────────────────────────────
+
+/**
+ * Panel Lateral de Sensores y Estado Eléctrico del HMI.
+ * 
+ * Centraliza la visualización de:
+ * 1. Indicadores ambientales en tiempo real (Temperatura, pH, Turbidez) provenientes del tópico de misión.
+ * 2. Métricas eléctricas (Corriente de motores, Voltajes de celda) del estado general del USV.
+ * 3. Log de sucesos recientes filtrado por nivel de severidad (INFO, WARN, ERROR).
+ * 
+ * Se auto-sincroniza en tiempo real con el flujo de WebSocket/MQTT.
+ */
 const SensorPanel = () => {
   const { usvStatus, misionData, logs, connectionStatus } = useIoTData();
 

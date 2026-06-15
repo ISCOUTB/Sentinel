@@ -1,3 +1,12 @@
+"""
+Enrutador de Endpoints de Datos y Misiones de Telemetría.
+
+Gestiona las consultas de telemetría de sensores, el estado de ubicación del vehículo,
+el histórico de misiones con formato de tiempo y nombres limpios, la ingesta de
+telemetría desde el USV o emulador, y la publicación de comandos de control (START, PAUSE, CANCEL)
+hacia AWS IoT Core a través de mensajería MQTT.
+"""
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 import random
@@ -18,8 +27,13 @@ router = APIRouter(prefix="/data", tags=["data"])
 @router.get("/sensors", response_model=SensorDataResponse)
 def get_sensor_data(current_user = Depends(get_current_user)):
     """
-    Obtener datos de sensores en tiempo real.
-    Actualmente simula datos, conectar a hardware real en el futuro.
+    Obtiene lecturas de sensores ambientales en tiempo real.
+    
+    Actualmente simula los datos de temperatura, oxígeno disuelto, pH y turbidez.
+    En implementaciones futuras, este endpoint se conectará a las fuentes de hardware reales.
+    
+    Returns:
+        SensorDataResponse: Datos agregados de sensores, métricas y logs recientes.
     """
     return SensorDataResponse(
         sensors=[
@@ -42,7 +56,10 @@ def get_sensor_data(current_user = Depends(get_current_user)):
 @router.get("/map", response_model=MapDataResponse)
 def get_map_data(current_user = Depends(get_current_user)):
     """
-    Obtener datos del mapa y ubicación del USV.
+    Obtiene las coordenadas del mapa y la ubicación del USV.
+    
+    Returns:
+        MapDataResponse: Coordenadas espaciales de latitud, longitud y el modo de renderizado.
     """
     return MapDataResponse(
         location="Cartagena, Colombia",
@@ -54,7 +71,13 @@ def get_map_data(current_user = Depends(get_current_user)):
 @router.get("/admin-data")
 def admin_data(user=Depends(require_admin)):
     """
-    Endpoint solo accesible para usuarios con rol 'admin'.
+    Endpoint restringido de prueba para verificar rol de administrador.
+    
+    Args:
+        user: Payload del usuario administrador actual.
+        
+    Returns:
+        dict: Mensaje de éxito e identificadores del administrador.
     """
     return {
         "message": "Solo admins",
@@ -66,7 +89,13 @@ def admin_data(user=Depends(require_admin)):
 @router.get("/user-data")
 def user_data(user=Depends(require_user)):
     """
-    Endpoint accesible para usuarios autenticados con rol 'user' o 'admin'.
+    Endpoint restringido de prueba para verificar rol de usuario general o administrador.
+    
+    Args:
+        user: Payload del usuario autenticado.
+        
+    Returns:
+        dict: Mensaje de éxito y roles del usuario.
     """
     return {
         "message": "Usuarios autenticados",
@@ -76,7 +105,15 @@ def user_data(user=Depends(require_user)):
     }
 
 def utc_to_bogota(utc_dt):
-    """Convierte datetime de UTC a Bogotá (UTC-5) manualmente."""
+    """
+    Convierte un objeto datetime con zona horaria UTC a la hora local de Bogotá (UTC-5).
+    
+    Args:
+        utc_dt (datetime): Objeto datetime en UTC.
+        
+    Returns:
+        datetime: Objeto datetime en hora local de Bogotá.
+    """
     if not utc_dt:
         return None
     return utc_dt - datetime.timedelta(hours=5)
@@ -84,7 +121,14 @@ def utc_to_bogota(utc_dt):
 @router.get("/missions")
 def get_missions(db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     """
-    Obtener lista de misiones disponibles con nombre limpio, número de secuencia y hora local.
+    Obtiene el listado de misiones de monitoreo registradas.
+    
+    Procesa las marcas de tiempo a hora local de Bogotá, limpia la nomenclatura del nombre
+    de misión removiendo subpatrones de fechas redundantes e inyecta un número secuencial de misión.
+    Retorna los resultados ordenados de forma cronológica inversa (las misiones más recientes primero).
+    
+    Returns:
+        List[dict]: Misiones procesadas con su respectivo estado.
     """
     import re
     # Obtener todas las misiones ordenadas por fecha para calcular el número de secuencia
@@ -118,7 +162,20 @@ def get_missions(db: Session = Depends(get_db), current_user = Depends(get_curre
 
 def publish_mission_command(command: str, mission_id: str, points: List = None):
     """
-    Publica un comando de misión en AWS IoT Core.
+    Publica instrucciones de control de misión hacia AWS IoT Core por MQTT.
+    
+    Este método actúa como puente emitiendo mensajes serializados en JSON en el tópico
+    de órdenes del dispositivo (`USV-001/orders` por defecto).
+    
+    Para la acción "START", realiza un flujo secuencial:
+    1. Emite un comando "PREPARE" indicando el ID de misión asignado.
+    2. Emite un comando "SET_COORDS" transmitiendo la lista de waypoints y radios de aceptación.
+    3. Emite el comando de control final "START" para inicializar la navegación física.
+    
+    Args:
+        command (str): Comando de control (START, FINISH, PAUSE, RESUME).
+        mission_id (str): Identificador único de la misión en base de datos.
+        points (List[MapCoordinates]): Lista de coordenadas que definen la ruta a seguir.
     """
     try:
         endpoint = settings.IOT_ENDPOINT
@@ -185,7 +242,17 @@ def publish_mission_command(command: str, mission_id: str, points: List = None):
 @router.post("/missions", response_model=MissionResponse)
 def create_mission(mission_in: MissionCreate, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     """
-    Crear una nueva misión.
+    Registra e inicia una nueva misión en el sistema.
+    
+    Genera un identificador único aleatorio para la misión, la guarda con estado "EN_PROGRESO"
+    en la base de datos relacional y despacha las coordenadas y el comando de arranque a AWS IoT Core.
+    
+    Args:
+        mission_in (MissionCreate): Nombre de la misión y lista de waypoints.
+        db (Session): Sesión de la base de datos MySQL.
+        
+    Returns:
+        MissionResponse: Perfil de la misión recién creada.
     """
     new_mission = Mission(
         id=str(uuid.uuid4())[:8],
@@ -206,7 +273,20 @@ def create_mission(mission_in: MissionCreate, db: Session = Depends(get_db), cur
 @router.patch("/missions/{mission_id}/finish", response_model=MissionResponse)
 def finish_mission(mission_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     """
-    Finalizar una misión existente.
+    Finaliza formalmente una misión de monitoreo activa.
+    
+    Marca el estado de la misión como "FINALIZADO", almacena la hora exacta de término en UTC,
+    y transmite la orden de finalización (CANCEL en el hardware) mediante MQTT a AWS IoT Core.
+    
+    Args:
+        mission_id (str): Identificador único de la misión.
+        db (Session): Sesión de base de datos MySQL.
+        
+    Returns:
+        MissionResponse: Perfil actualizado de la misión.
+        
+    Raises:
+        HTTPException (404): Si la misión con el ID provisto no existe.
     """
     mission = db.query(Mission).filter(Mission.id == mission_id).first()
     if not mission:
@@ -225,7 +305,19 @@ def finish_mission(mission_id: str, db: Session = Depends(get_db), current_user 
 @router.patch("/missions/{mission_id}/pause", response_model=MissionResponse)
 def pause_mission(mission_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     """
-    Pausar una misión en progreso.
+    Pausa la navegación del vehículo de forma temporal durante la misión activa.
+    
+    Actualiza el estado a "PAUSADO" en base de datos y despacha el comando de pausa vía MQTT.
+    
+    Args:
+        mission_id (str): Identificador de la misión.
+        db (Session): Sesión de base de datos MySQL.
+        
+    Returns:
+        MissionResponse: Perfil de misión con estado actualizado.
+        
+    Raises:
+        HTTPException (404): Si la misión no existe.
     """
     mission = db.query(Mission).filter(Mission.id == mission_id).first()
     if not mission:
@@ -243,7 +335,19 @@ def pause_mission(mission_id: str, db: Session = Depends(get_db), current_user =
 @router.patch("/missions/{mission_id}/resume", response_model=MissionResponse)
 def resume_mission(mission_id: str, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
     """
-    Reanudar una misión pausada.
+    Reanuda una misión previamente pausada.
+    
+    Establece el estado como "EN_PROGRESO" en base de datos y publica la orden de reanudación vía MQTT.
+    
+    Args:
+        mission_id (str): Identificador de la misión.
+        db (Session): Sesión de base de datos MySQL.
+        
+    Returns:
+        MissionResponse: Perfil de misión con estado restaurado.
+        
+    Raises:
+        HTTPException (404): Si la misión no existe.
     """
     mission = db.query(Mission).filter(Mission.id == mission_id).first()
     if not mission:
@@ -261,7 +365,21 @@ def resume_mission(mission_id: str, db: Session = Depends(get_db), current_user 
 @router.post("/telemetry")
 def ingest_telemetry(data: TelemetryData, db: Session = Depends(get_db)):
     """
-    Ingestar datos de telemetría desde el USV (o emulador).
+    Registra una lectura de telemetría proveniente del USV o emulador de hardware.
+    
+    Valida la existencia de la misión asociada y que ésta no haya concluido aún.
+    Inserta las lecturas físico-químicas del agua y estado eléctrico en la tabla `sensor_data` de MySQL.
+    
+    Args:
+        data (TelemetryData): Payload con métricas ambientales y coordenadas GPS actuales del USV.
+        db (Session): Sesión de la base de datos MySQL.
+        
+    Returns:
+        dict: Estado del resultado de la inserción.
+        
+    Raises:
+        HTTPException (404): Si la misión asociada no es válida.
+        HTTPException (400): Si la misión ya ha finalizado, rechazando más telemetría.
     """
     mission = db.query(Mission).filter(Mission.id == data.mission_id).first()
     if not mission:

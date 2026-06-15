@@ -1,3 +1,12 @@
+#!/usr/bin/env python3
+"""
+Punto de Entrada del Servidor Sentinel Backend.
+
+Inicializa la aplicación FastAPI, configura las políticas de CORS,
+registra los enrutadores para autenticación, telemetría y reportes,
+y gestiona la creación inicial de tablas en la base de datos relacional.
+"""
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import time
@@ -20,7 +29,13 @@ app = FastAPI(
 
 @app.on_event("startup")
 async def startup_event():
-    """Crear las tablas en la base de datos al iniciar la aplicación."""
+    """
+    Evento disparado al iniciar el servidor de FastAPI.
+    
+    Intenta crear de forma segura las tablas en la base de datos MySQL,
+    con una política de reintentos exponenciales sutiles (hasta 5 intentos)
+    para manejar desfases temporales en el arranque de contenedores Docker.
+    """
     max_retries = 5
     for attempt in range(max_retries):
         try:
@@ -36,7 +51,7 @@ async def startup_event():
                 logger.error("No se pudieron crear las tablas después de varios intentos")
                 raise
 
-# Set up CORS
+# Configurar CORS middleware para solicitudes del frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -45,7 +60,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
+# Registro de enrutadores de la API V1
 app.include_router(
     auth_router,
     prefix=settings.API_V1_STR,
@@ -66,8 +81,22 @@ app.include_router(
 
 @app.get("/")
 def read_root():
+    """
+    Endpoint de bienvenida raíz del sistema.
+    
+    Returns:
+        dict: Información básica e identificadora del backend.
+    """
     return {"message": "USV HMI Backend API", "version": "1.0.0", "status": "running"}
 
 @app.get("/health")
 def health_check():
+    """
+    Endpoint de verificación de estado (Health Check).
+    
+    Usado para validar la vitalidad del servicio por balanceadores de carga o Docker.
+    
+    Returns:
+        dict: Estado de salud del servidor.
+    """
     return {"status": "healthy"}

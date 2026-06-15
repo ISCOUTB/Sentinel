@@ -10,6 +10,14 @@ const conexionConfig = {
   OFFLINE: { label: 'Fuera de línea', dot: 'bg-red-500', icon: WifiOff },
 } as const;
 
+/**
+ * Barra de Estado Global de Telemetría.
+ * 
+ * Muestra información resumida en tres paneles:
+ * 1. Batería: Carga porcentual y corriente total consumida por los motores (M1 y M2).
+ * 2. Estado de Red: Estado del enlace físico del USV (ONLINE/OFFLINE) y del puente de WebSocket MQTT.
+ * 3. Actividad: Actividad actual del USV y dirección angular (guiñada) en grados.
+ */
 const StatusBar = () => {
   const { usvStatus, connectionStatus } = useIoTData();
 

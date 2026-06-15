@@ -50,6 +50,18 @@ const SENSOR_LINES = [
 
 // ─── Componente Principal ─────────────────────────────────────────────────────
 
+/**
+ * Componente de Gráfico de Tendencias en Tiempo Real.
+ * 
+ * Utiliza Recharts para representar gráficamente las variaciones de parámetros
+ * físico-químicos (Temperatura, pH y Turbidez) a lo largo del tiempo.
+ * 
+ * Ofrece dos modos interactivos:
+ * 1. Modo Multidimensional: Muestra de forma combinada los sensores habilitados en el dropdown.
+ * 2. Modo Enfoque: Navegación cíclica individual (con flechas) para centrarse en un único parámetro.
+ * 
+ * Mantiene un búfer máximo histórico de 24 puntos de telemetría en memoria.
+ */
 const SensorChart = () => {
   const { misionData } = useIoTData();
 

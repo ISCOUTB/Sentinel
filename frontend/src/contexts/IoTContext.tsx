@@ -17,6 +17,7 @@ const DEFAULT_THING_NAME =
 
 // ─── Context ─────────────────────────────────────────────────────────────────
 
+// Context
 const IoTContext = createContext<IoTState | null>(null);
 
 // ─── Provider ────────────────────────────────────────────────────────────────
@@ -27,6 +28,12 @@ interface IoTProviderProps {
   thingName?: string;
 }
 
+/**
+ * Proveedor del Contexto IoT.
+ * 
+ * Vincula el ciclo de vida del WebSocket de AWS IoT Core con la sesión autenticada del usuario,
+ * distribuyendo de forma centralizada la telemetría en tiempo real a todos los componentes del HMI.
+ */
 export const IoTProvider: React.FC<IoTProviderProps> = ({
   children,
   thingName = DEFAULT_THING_NAME,
@@ -42,10 +49,15 @@ export const IoTProvider: React.FC<IoTProviderProps> = ({
 // ─── Hook de consumo ─────────────────────────────────────────────────────────
 
 /**
- * Accede al estado IoT desde cualquier componente dentro de <IoTProvider>.
+ * Accede al estado de telemetría IoT desde cualquier componente hijo dentro de `<IoTProvider>`.
+ * 
+ * Permite leer `connectionStatus`, `usvStatus`, `misionData` y `logs` en tiempo real sin prop-drilling.
  *
  * @example
  * const { connectionStatus, usvStatus, misionData, logs } = useIoTData();
+ * 
+ * @returns El estado consolidado de la conexión MQTT.
+ * @throws Error si se invoca fuera del proveedor `<IoTProvider>`.
  */
 export function useIoTData(): IoTState {
   const ctx = useContext(IoTContext);

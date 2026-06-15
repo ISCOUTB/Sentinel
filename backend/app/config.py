@@ -3,6 +3,13 @@ from pydantic import field_validator
 from typing import List, Union
 
 class Settings(BaseSettings):
+    """
+    Configuración global del backend de Sentinel.
+    
+    Carga variables de entorno desde el archivo `.env` ubicado en la raíz del proyecto
+    y expone configuraciones para base de datos (MySQL), autenticación (JWT local y AWS Cognito),
+    base de datos de series de tiempo (InfluxDB) y AWS IoT Core.
+    """
     DATABASE_URL: str = "mysql+pymysql://usv_user:usv_password@db:3306/usv_hmi"
     SECRET_KEY: str = "your-secret-key-here"
     ALGORITHM: str = "HS256"
@@ -33,13 +40,24 @@ class Settings(BaseSettings):
     AWS_SECRET_ACCESS_KEY: str = ""
     AWS_REGION: str = "us-east-1"
     class Config:
+        """Configuración de Pydantic BaseSettings para resolver archivos env."""
         env_file = "../../.env"
         extra = "ignore"
 
     @field_validator('BACKEND_CORS_ORIGINS', mode='before')
     @classmethod
     def parse_cors_origins(cls, v):
-        """Parse BACKEND_CORS_ORIGINS from various formats to list."""
+        """
+        Valida y convierte los orígenes de CORS.
+        
+        Soporta orígenes como strings separadas por comas o listas directas.
+        
+        Args:
+            v: El valor crudo de BACKEND_CORS_ORIGINS (string o lista).
+            
+        Returns:
+            List[str]: Lista con los orígenes permitidos procesados.
+        """
         if isinstance(v, str):
             # Si es una string, dividirla por comas
             return [origin.strip() for origin in v.split(",") if origin.strip()]
@@ -50,7 +68,12 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins(self) -> List[str]:
-        """Get CORS origins as list."""
+        """
+        Retorna la lista final de orígenes habilitados para CORS.
+        
+        Returns:
+            List[str]: Orígenes permitidos.
+        """
         if isinstance(self.BACKEND_CORS_ORIGINS, list):
             return self.BACKEND_CORS_ORIGINS
         return ["http://localhost:8080", "http://localhost:3000", "http://localhost:5173"]

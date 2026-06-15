@@ -1,12 +1,25 @@
 
+/** Estructura que define los parámetros de conexión para el ecosistema de AWS Cognito y API Gateway */
 export interface CognitoConfig {
-  identityPoolId?: string; // Opcional - solo necesario si accedes a recursos AWS
+  /** Identificador del Cognito Identity Pool */
+  identityPoolId?: string;
+  /** Identificador del Cognito User Pool */
   userPoolId: string;
+  /** Identificador del cliente de aplicación web de Cognito */
   userPoolWebClientId: string;
+  /** Región geográfica de AWS donde residen los recursos */
   awsRegion: string;
+  /** URL base del API Gateway de AWS */
   apiGatewayUrl: string;
 }
 
+/**
+ * Lee y estructura la configuración de AWS Cognito a partir de variables de entorno de Vite.
+ * 
+ * Imprime una advertencia preventiva por consola si la configuración requerida es incompleta.
+ * 
+ * @returns La configuración validada de Cognito.
+ */
 const getCognitoConfig = (): CognitoConfig => {
   const config: CognitoConfig = {
     identityPoolId: import.meta.env.VITE_COGNITO_IDENTITY_POOL_ID || '',

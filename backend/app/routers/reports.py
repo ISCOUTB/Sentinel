@@ -1,3 +1,13 @@
+"""
+Enrutador de Endpoints para la Generación de Reportes.
+
+Genera reportes de calidad de agua en formato PDF y CSV para una misión seleccionada.
+Consulta los datos históricos detallados almacenados en InfluxDB, calcula estadísticas,
+genera gráficos de tendencia utilizando Matplotlib y utiliza la API de Gemini de Google
+(modelo `models/gemini-flash-latest`) para producir un análisis ambiental automatizado en español.
+El renderizado del PDF final se realiza mediante WeasyPrint a partir de una plantilla HTML de Jinja2.
+"""
+
 import os
 import uuid
 import datetime
@@ -20,10 +30,22 @@ from app.config import settings
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
-# Configure Gemini
+# Configuración inicial del SDK de Gemini AI con la clave provista
 genai.configure(api_key=settings.GEMINI_API_KEY)
 
 def generate_graphs(df: pd.DataFrame) -> dict:
+    """
+    Genera gráficos de líneas en formato PNG para cada parámetro de calidad del agua.
+    
+    Usa Matplotlib para graficar temperatura, pH y turbidez contra la línea de tiempo.
+    Codifica las imágenes en Base64 para permitir su incrustación directa en el reporte HTML/PDF.
+    
+    Args:
+        df (pd.DataFrame): Dataframe conteniendo las columnas 'timestamp', 'temperature', 'ph' y 'turbidity'.
+        
+    Returns:
+        dict: Diccionario mapeando el nombre del parámetro con la representación URI Base64 del gráfico.
+    """
     graphs = {}
     metrics = {
         'temperature': ('Temperatura del Agua (°C)', 'red'),
@@ -51,7 +73,15 @@ def generate_graphs(df: pd.DataFrame) -> dict:
     return graphs
 
 def utc_to_bogota(utc_dt):
-    """Convierte datetime de UTC a Bogotá (UTC-5) manualmente."""
+    """
+    Convierte una marca de tiempo UTC a hora local de Bogotá (UTC-5) sin depender de dependencias de zonas complejas.
+    
+    Args:
+        utc_dt (datetime): Datetime en UTC.
+        
+    Returns:
+        datetime: Datetime convertido.
+    """
     if not utc_dt:
         return None
     # Bogotá es UTC-5 siempre
@@ -59,6 +89,30 @@ def utc_to_bogota(utc_dt):
 
 @router.post("/generate")
 def generate_report(mission_id: str = Query(...), db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    """
+    Genera un reporte ejecutivo en formato PDF firmado y analizado con Inteligencia Artificial.
+    
+    Flujo de trabajo:
+    1. Verifica la existencia de la misión en la base de datos MySQL local.
+    2. Consulta los registros de telemetría correspondientes a la misión en InfluxDB.
+    3. Construye un DataFrame con los registros y calcula estadísticas descriptivas (Min, Max, Promedio).
+    4. Envía un prompt estructurado al modelo de Gemini para redactar un análisis ambiental automatizado del agua en español.
+    5. Genera gráficos visuales de tendencia en Base64 con Matplotlib.
+    6. Renderiza la plantilla HTML `report_template.html` inyectando los datos y gráficos usando Jinja2.
+    7. Compila y escribe el PDF usando WeasyPrint, retornando los bytes del archivo adjunto.
+    
+    Args:
+        mission_id (str): Identificador único de la misión.
+        db (Session): Sesión de la base de datos MySQL.
+        
+    Returns:
+        Response: Respuesta HTTP con contenido binario del PDF y cabeceras de descarga (attachment).
+        
+    Raises:
+        HTTPException (404): Si la misión no existe.
+        HTTPException (500): Si hay fallas al conectar o consultar InfluxDB.
+        HTTPException (400): Si no hay registros de telemetría de sensores asociados en InfluxDB.
+    """
     mission = db.query(Mission).filter(Mission.id == mission_id).first()
     if not mission:
         raise HTTPException(status_code=404, detail="Misión no encontrada")
@@ -118,7 +172,7 @@ def generate_report(mission_id: str = Query(...), db: Session = Depends(get_db),
 
     df = pd.DataFrame(data_dicts)
 
-    # Calculate statistics
+    # Calcular estadísticas
     stats = {}
     for col in ['temperature', 'ph', 'turbidity']:
         if col in df.columns:
@@ -128,7 +182,7 @@ def generate_report(mission_id: str = Query(...), db: Session = Depends(get_db),
                 'mean': df[col].mean()
             }
 
-    # Ask Gemini for analysis
+    # Configuración de prompt para Gemini AI
     prompt = f"""
     Eres un analista experto en calidad del agua. A continuación se presentan las estadísticas de una misión de monitoreo ({mission_seq_name} - {mission.name}):
     
@@ -140,17 +194,17 @@ def generate_report(mission_id: str = Query(...), db: Session = Depends(get_db),
     """
     
     try:
-        # Usar el nombre completo del modelo según la lista disponible
+        # Usar el modelo gemini-flash-latest para generar contenido
         model = genai.GenerativeModel('models/gemini-flash-latest')
         response = model.generate_content(prompt)
         ai_analysis = response.text.replace('```html', '').replace('```', '')
     except Exception as e:
         ai_analysis = f"<p>Error al generar el análisis de IA: {str(e)}</p>"
 
-    # Generate graphs
+    # Generar gráficos
     graphs = generate_graphs(df)
 
-    # Render HTML template
+    # Renderizar plantilla HTML usando Jinja2
     env = Environment(loader=FileSystemLoader("app/templates"))
     template = env.get_template("report_template.html")
     
@@ -166,7 +220,7 @@ def generate_report(mission_id: str = Query(...), db: Session = Depends(get_db),
         time_bog=now_bog.strftime("%H:%M:%S")
     )
 
-    # Generate PDF
+    # Convertir el HTML resultante a PDF binario usando WeasyPrint
     pdf_bytes = HTML(string=html_out).write_pdf()
 
     return Response(content=pdf_bytes, media_type="application/pdf", headers={
@@ -175,6 +229,24 @@ def generate_report(mission_id: str = Query(...), db: Session = Depends(get_db),
 
 @router.post("/generate_csv")
 def generate_csv_report(mission_id: str = Query(...), db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+    """
+    Genera y descarga un reporte consolidado de lecturas de sensores en formato plano CSV.
+    
+    Consulta el histórico de telemetría registrado para la misión en InfluxDB,
+    lo estructura en un DataFrame y devuelve un stream de texto CSV.
+    
+    Args:
+        mission_id (str): Identificador único de la misión.
+        db (Session): Sesión de la base de datos MySQL.
+        
+    Returns:
+        Response: Respuesta HTTP conteniendo los bytes del archivo CSV con cabeceras de adjunto.
+        
+    Raises:
+        HTTPException (404): Si la misión no se encuentra en base de datos.
+        HTTPException (500): Si ocurre un fallo de conexión a InfluxDB.
+        HTTPException (400): Si no hay datos de sensores registrados para la misión en InfluxDB.
+    """
     mission = db.query(Mission).filter(Mission.id == mission_id).first()
     if not mission:
         raise HTTPException(status_code=404, detail="Misión no encontrada")
@@ -183,7 +255,7 @@ def generate_csv_report(mission_id: str = Query(...), db: Session = Depends(get_
         client = InfluxDBClient(url=settings.INFLUXDB_URL, token=settings.INFLUXDB_TOKEN, org=settings.INFLUXDB_ORG)
         query_api = client.query_api()
 
-        # Usar un rango más amplio si es necesario, o depender solo de mission_id
+        # Rango amplio (30 días) para recopilar toda la telemetría correspondiente al ID
         query = f'''
             from(bucket: "{settings.INFLUXDB_BUCKET}")
             |> range(start: -30d)
@@ -218,7 +290,7 @@ def generate_csv_report(mission_id: str = Query(...), db: Session = Depends(get_
 
     df = pd.DataFrame(data_dicts)
     
-    # Crear CSV en memoria
+    # Crear CSV en memoria usando buffer de strings
     csv_buffer = io.StringIO()
     df.to_csv(csv_buffer, index=False)
     csv_bytes = csv_buffer.getvalue().encode('utf-8')
