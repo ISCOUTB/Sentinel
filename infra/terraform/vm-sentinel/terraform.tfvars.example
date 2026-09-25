@@ -1,0 +1,17 @@
+#Plantilla de variables tfvars para pruebas individuales en terraform
+
+# AWS Credentials
+my_access_key = "TU_ACCESS_KEY_AQUI"
+my_secret_key = "TU_SECRET_KEY_AQUI"
+aws_region     = "us-east-1"
+
+# VM Sentinel Configuration
+region_sentinel     = "us-east-1"
+repo_branch         = "develop"
+secret_key          = "your-secret-key-here-change-this-in-production"
+
+# MySQL Configuration
+mysql_root_password = "rootpassword"
+mysql_database      = "usv_hmi"
+mysql_user          = "usv_user"
+mysql_password      = "usv_password"

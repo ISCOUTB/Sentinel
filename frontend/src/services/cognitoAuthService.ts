@@ -1,0 +1,280 @@
+import {
+  CognitoUserPool,
+  CognitoUser,
+  AuthenticationDetails,
+  CognitoUserAttribute,
+} from 'amazon-cognito-identity-js';
+import { cognitoConfig } from '@/config/cognito';
+
+class CognitoAuthService {
+  private userPool: CognitoUserPool | null = null;
+
+  constructor() {}
+
+  private getUserPool(): CognitoUserPool {
+    if (this.userPool) {
+      return this.userPool;
+    }
+
+    if (!cognitoConfig.userPoolId || !cognitoConfig.userPoolWebClientId) {
+      throw new Error(
+        'Cognito no está configurado. Verifica VITE_COGNITO_USER_POOL_ID y VITE_COGNITO_USER_POOL_CLIENT_ID.'
+      );
+    }
+
+    this.userPool = new CognitoUserPool({
+      UserPoolId: cognitoConfig.userPoolId,
+      ClientId: cognitoConfig.userPoolWebClientId,
+    });
+
+    return this.userPool;
+  }
+
+  /**
+   * Registra un nuevo usuario en Cognito
+   */
+  async register(username: string, email: string, password: string, name?: string, lastName?: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const userPool = this.getUserPool();
+      const attributeList = [
+        new CognitoUserAttribute({
+          Name: 'email',
+          Value: email,
+        }),
+      ];
+
+      if (name) {
+        attributeList.push(new CognitoUserAttribute({ Name: 'given_name', Value: name }));
+      }
+      if (lastName) {
+        attributeList.push(new CognitoUserAttribute({ Name: 'family_name', Value: lastName }));
+      }
+
+      userPool.signUp(username, password, attributeList, [], (err, result) => {
+        if (err) {
+          reject(new Error(err.message || 'Error durante el registro'));
+        } else {
+          // Usuario creado pero necesita confirmar email
+          resolve();
+        }
+      });
+    });
+  }
+
+  /**
+   * Confirma el registro del usuario con el código enviado al email
+   */
+  async confirmSignUp(username: string, confirmationCode: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const cognitoUser = new CognitoUser({
+        Username: username,
+        Pool: this.getUserPool(),
+      });
+
+      cognitoUser.confirmRegistration(confirmationCode, true, (err, result) => {
+        if (err) {
+          reject(new Error(err.message || 'Error confirmando la cuenta'));
+        } else {
+          resolve();
+        }
+      });
+    });
+  }
+
+  /**
+   * Reenvía el código de confirmación al email del usuario
+   */
+  async resendConfirmationCode(username: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const cognitoUser = new CognitoUser({
+        Username: username,
+        Pool: this.getUserPool(),
+      });
+
+      cognitoUser.resendConfirmationCode((err, result) => {
+        if (err) {
+          reject(new Error(err.message || 'Error reenviando código de confirmación'));
+        } else {
+          resolve();
+        }
+      });
+    });
+  }
+
+  /**
+   * Inicia sesión con username y contraseña
+   */
+  async login(username: string, password: string): Promise<{
+    accessToken: string;
+    idToken: string;
+    refreshToken: string;
+  }> {
+    return new Promise((resolve, reject) => {
+      const cognitoUser = new CognitoUser({
+        Username: username,
+        Pool: this.getUserPool(),
+      });
+
+      const authenticationDetails = new AuthenticationDetails({
+        Username: username,
+        Password: password,
+      });
+
+      cognitoUser.authenticateUser(authenticationDetails, {
+        onSuccess: (result) => {
+          const accessToken = result.getAccessToken().getJwtToken();
+          const idToken = result.getIdToken().getJwtToken();
+          const refreshToken = result.getRefreshToken().getToken();
+
+          resolve({
+            accessToken,
+            idToken,
+            refreshToken,
+          });
+        },
+        onFailure: (err) => {
+          reject(new Error(err.message || 'Error al iniciar sesión'));
+        },
+      });
+    });
+  }
+
+  /**
+   * Refresca el access token usando el refresh token
+   */
+  async refreshToken(username: string, refreshToken: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const cognitoUser = new CognitoUser({
+        Username: username,
+        Pool: this.getUserPool(),
+      });
+
+      const RefreshToken = {
+        getToken: () => refreshToken,
+      };
+
+      cognitoUser.refreshSession(RefreshToken, (err, session) => {
+        if (err) {
+          reject(new Error(err.message || 'Error al refrescar el token'));
+        } else {
+          const newAccessToken = session.getAccessToken().getJwtToken();
+          resolve(newAccessToken);
+        }
+      });
+    });
+  }
+
+  /**
+   * Obtiene el usuario activo
+   */
+  async getCurrentUser(): Promise<CognitoUser | null> {
+    const userPool = this.getUserPool();
+    const user = userPool.getCurrentUser();
+    if (!user) {
+      return null;
+    }
+
+    return new Promise((resolve, reject) => {
+      user.getSession((err, session) => {
+        if (err || !session || !session.isValid()) {
+          reject(new Error('Sesión inválida'));
+        } else {
+          resolve(user);
+        }
+      });
+    });
+  }
+
+  /**
+   * Obtiene la sesión completa con tokens para el usuario actual
+   */
+  async getSessionData(): Promise<{
+    accessToken: string;
+    idToken: string;
+    refreshToken: string;
+    username: string;
+  } | null> {
+    const userPool = this.getUserPool();
+    const user = userPool.getCurrentUser();
+    if (!user) return null;
+
+    return new Promise((resolve) => {
+      user.getSession((err, session) => {
+        if (err || !session || !session.isValid()) {
+          resolve(null);
+        } else {
+          resolve({
+            accessToken: session.getAccessToken().getJwtToken(),
+            idToken: session.getIdToken().getJwtToken(),
+            refreshToken: session.getRefreshToken().getToken(),
+            username: user.getUsername(),
+          });
+        }
+      });
+    });
+  }
+
+  /**
+   * Obtiene los atributos del usuario actual
+   */
+  async getUserAttributes(username: string): Promise<Record<string, string>> {
+    const cognitoUser = new CognitoUser({
+      Username: username,
+      Pool: this.getUserPool(),
+    });
+
+    return new Promise((resolve, reject) => {
+      cognitoUser.getUserAttributes((err, attributes) => {
+        if (err) {
+          reject(new Error(err.message || 'Error al obtener atributos del usuario'));
+        } else {
+          const userAttributes: Record<string, string> = {};
+          if (attributes) {
+            attributes.forEach((attr) => {
+              userAttributes[attr.Name] = attr.Value;
+            });
+          }
+          resolve(userAttributes);
+        }
+      });
+    });
+  }
+
+  /**
+   * Cierra sesión
+   */
+  async logout(username: string): Promise<void> {
+    const cognitoUser = new CognitoUser({
+      Username: username,
+      Pool: this.getUserPool(),
+    });
+
+    return new Promise((resolve) => {
+      cognitoUser.signOut(() => {
+        resolve();
+      });
+    });
+  }
+
+  /**
+   * Obtiene el access token del usuario actual
+   */
+  async getAccessToken(username: string): Promise<string> {
+    const cognitoUser = new CognitoUser({
+      Username: username,
+      Pool: this.getUserPool(),
+    });
+
+    return new Promise((resolve, reject) => {
+      cognitoUser.getSession((err, session) => {
+        if (err || !session) {
+          reject(new Error('No hay sesión activa'));
+        } else {
+          resolve(session.getAccessToken().getJwtToken());
+        }
+      });
+    });
+  }
+}
+
+export const cognitoAuthService = new CognitoAuthService();

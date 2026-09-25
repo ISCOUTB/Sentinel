@@ -1,0 +1,27 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Mar Caribe y Bahia de Cartagena"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-75.75, 10.55],
+            [-75.75, 10.20],
+            [-75.54, 10.20],
+            [-75.50, 10.30],
+            [-75.50, 10.38],
+            [-75.52, 10.42],
+            [-75.49, 10.48],
+            [-75.49, 10.55],
+            [-75.75, 10.55]
+          ]
+        ]
+      }
+    }
+  ]
+}

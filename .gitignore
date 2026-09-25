@@ -22,3 +22,23 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+#Proyect files
+.env
+__pycache__/
+hardware
+certs
+certificates
+
+#Terraform files
+terraform.tfstate.backup
+*.backup
+.terraform.lock.hcl
+mykey.pub
+mykey
+.terraform
+*.tfvars
+*.tfstate
+terraform/lambda_influxdb_iotcore/lambda_function.zip
+package/
+lambda_function.zip

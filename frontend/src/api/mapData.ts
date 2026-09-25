@@ -1,11 +1,23 @@
-// src/api/mapData.ts
-export async function fetchMapData() {
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+import { apiRequest } from './auth';
 
-  return {
-    location: "Cartagena, Colombia",
-    mode: Math.random() > 0.5 ? "2d" : "3d",
-    coordinates: { lat: 10.3910, lng: -75.4794 }, // 📍 Coordenadas de Cartagena
-  };
+export interface MapCoordinates {
+    lat: number;
+    lng: number;
 }
 
+export interface MapDataResponse {
+    location: string;
+    mode: string;
+    coordinates: MapCoordinates;
+}
+
+export async function fetchMapData(): Promise<MapDataResponse> {
+  const token = localStorage.getItem('accessToken');
+  if (!token) {
+      throw new Error("No authorization token found");
+  }
+
+  return apiRequest<MapDataResponse>('/data/map', {
+     headers: { Authorization: `Bearer ${token}` }
+  });
+}
